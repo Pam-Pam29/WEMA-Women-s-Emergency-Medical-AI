@@ -1,0 +1,28 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+env/
+
+# Knowledge base (too large for git)
+knowledge_base/
+
+# Model weights (too large for git)
+models/finetuned/
+
+# Data
+data/pdfs/
+data/processed/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
