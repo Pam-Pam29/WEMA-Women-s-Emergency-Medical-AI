@@ -1,4 +1,7 @@
 import os
+import sys
+import pickle
+import numpy as np
 from groq import Groq
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -8,6 +11,8 @@ load_dotenv()
 
 CHROMA_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "knowledge_base")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "risk_classifier.pkl")
+SCALER_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "scaler.pkl")
 
 SYSTEM_PROMPT = """You are WEMA — Women's Emergency Medical AI. You are an emergency voice assistant for women's health crises in Nigeria.
 
@@ -24,6 +29,63 @@ Rules you must always follow:
 - Never ask more than one question at a time"""
 
 
+def load_risk_classifier():
+    if not os.path.exists(MODEL_PATH):
+        print("Risk classifier not found — run src/classifier.py first")
+        return None, None, None, None
+    with open(MODEL_PATH, "rb") as f:
+        clf, le, features = pickle.load(f)
+    with open(SCALER_PATH, "rb") as f:
+        scaler = pickle.load(f)
+    return clf, scaler, le, features
+
+
+def classify_from_voice(symptoms_text):
+    text = symptoms_text.lower()
+    high_risk_keywords = [
+        "bleeding heavily", "soaking", "seizure", "unconscious",
+        "not breathing", "eclampsia", "hemorrhage", "blurry vision",
+        "severe headache", "baby not moving", "no movement",
+        "cord prolapse", "pushing", "baby coming", "born at home",
+        "heavy bleeding", "can't stop bleeding", "racing heart", "faint"
+    ]
+    mid_risk_keywords = [
+        "bleeding", "headache", "fever", "discharge", "swollen",
+        "contraction", "cramping", "dizzy", "pain", "infection",
+        "not moving", "reduced movement", "worried", "scared"
+    ]
+    high_count = sum(1 for kw in high_risk_keywords if kw in text)
+    mid_count = sum(1 for kw in mid_risk_keywords if kw in text)
+
+    if high_count >= 1:
+        return {"risk_level": "high risk", "confidence": "high"}
+    elif mid_count >= 1:
+        return {"risk_level": "mid risk", "confidence": "medium"}
+    else:
+        return {"risk_level": "low risk", "confidence": "low"}
+
+
+def get_risk_action(risk_level):
+    actions = {
+        "high risk": {
+            "action": "IMMEDIATE — Alert doctor now, send clinic directions, stay on line",
+            "alert_doctor": True,
+            "send_directions": True,
+        },
+        "mid risk": {
+            "action": "URGENT — Alert doctor, send directions, monitor closely",
+            "alert_doctor": True,
+            "send_directions": True,
+        },
+        "low risk": {
+            "action": "MONITOR — Provide guidance, recommend clinic visit",
+            "alert_doctor": False,
+            "send_directions": True,
+        }
+    }
+    return actions.get(risk_level.lower(), actions["high risk"])
+
+
 class WEMAAgent:
     def __init__(self):
         api_key = os.getenv("GROQ_API_KEY")
@@ -33,6 +95,7 @@ class WEMAAgent:
         self.client = Groq(api_key=api_key)
         self.conversation_history = []
         self.emergency_type = None
+        self.risk_level = None
         self.caller_symptoms = []
         self.doctor_alerted = False
         self.directions_sent = False
@@ -47,6 +110,9 @@ class WEMAAgent:
             embedding_function=embeddings,
             collection_name="wema_maternal_health"
         )
+
+        print("Loading risk classifier...")
+        self.clf, self.scaler, self.le, self.features = load_risk_classifier()
         print("WEMA agent ready.\n")
 
     def retrieve_context(self, query, k=3):
@@ -84,7 +150,9 @@ class WEMAAgent:
         if self.directions_sent:
             status += "Clinic directions have been sent. "
         if self.emergency_type:
-            status += f"Emergency type identified: {self.emergency_type}."
+            status += f"Emergency type: {self.emergency_type}. "
+        if self.risk_level:
+            status += f"Risk level: {self.risk_level.upper()}."
 
         prompt = f"""{SYSTEM_PROMPT}
 
@@ -96,7 +164,7 @@ WHO Protocol information relevant to this emergency:
 
 Current caller message: {user_message}
 
-Respond as WEMA now:"""
+Respond as WEMA now — calm, short, spoken sentences only:"""
 
         return prompt
 
@@ -105,16 +173,26 @@ Respond as WEMA now:"""
             self.emergency_type = self.detect_emergency(user_message)
 
         self.caller_symptoms.append(user_message)
-        context = self.retrieve_context(user_message)
 
-        if not self.doctor_alerted:
-            print("[SYSTEM] Alerting doctor via SMS...")
+        # Classify risk from voice symptoms
+        risk = classify_from_voice(user_message)
+        self.risk_level = risk["risk_level"]
+        action = get_risk_action(self.risk_level)
+
+        # Alert doctor based on risk level
+        if not self.doctor_alerted and action["alert_doctor"]:
+            print(f"\n[SYSTEM] Risk level: {self.risk_level.upper()} — Alerting doctor via SMS...")
             self.doctor_alerted = True
 
-        if not self.directions_sent:
-            print("[SYSTEM] Sending clinic directions via SMS...")
+        # Send clinic directions
+        if not self.directions_sent and action["send_directions"]:
+            print(f"[SYSTEM] Sending clinic directions via SMS...")
             self.directions_sent = True
 
+        # Retrieve WHO context
+        context = self.retrieve_context(user_message)
+
+        # Build prompt and get response
         prompt = self.build_prompt(user_message, context)
 
         response = self.client.chat.completions.create(
@@ -138,7 +216,7 @@ Respond as WEMA now:"""
         print("WEMA — Women's Emergency Medical AI")
         print("She called. We answered.")
         print("=" * 60)
-        print("Type your emergency below. Type 'end' to finish the call.\n")
+        print("Type your emergency. Type 'end' to finish the call.\n")
 
         greeting = "You have reached WEMA — Women's Emergency Medical AI. I am here with you. Please tell me what is happening right now."
         print(f"WEMA: {greeting}\n")
@@ -153,7 +231,10 @@ Respond as WEMA now:"""
                 print("\nWEMA: Stay safe. Help is on the way. The doctor has been alerted and directions have been sent to your phone.")
                 print("\n[CALL ENDED]")
                 print(f"Emergency type: {self.emergency_type}")
+                print(f"Final risk level: {self.risk_level}")
                 print(f"Symptoms reported: {self.caller_symptoms}")
+                print(f"Doctor alerted: {self.doctor_alerted}")
+                print(f"Directions sent: {self.directions_sent}")
                 break
 
             response = self.respond(user_input)
