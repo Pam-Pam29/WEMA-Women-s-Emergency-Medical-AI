@@ -1,3 +1,4 @@
+
 # WEMA — Women's Emergency Medical AI
 
 > *She called. We answered.*
@@ -12,7 +13,9 @@ When a woman dials the WEMA number, an AI agent answers immediately — any time
 
 No app. No data plan. A basic mobile phone call is all she needs.
 
+
 ---
+## PRESENTATION SLIDE LINK : https://docs.google.com/presentation/d/1eqNJFDNuH4X3F4NIuwbtJ45GhCq3Hkq96sufUNxkt_4/edit?usp=sharing 
 
 ## Architecture
 
