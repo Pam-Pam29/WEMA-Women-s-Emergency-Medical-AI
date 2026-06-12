@@ -2,16 +2,18 @@
 WEMA — Women's Emergency Medical AI
 src/sms.py
 
-Triggered when WEMA response contains "alerting the nearest doctor".
+Triggered when WEMA's response contains an alert phrase (see SMS_TRIGGER_PHRASES).
 Finds the 3 nearest healthcare providers to the caller's location.
 Sends SMS alert to all 3 via Twilio.
 
 Exports used by app.py:
   - alert_nearest_providers()
   - extract_state()
+  - should_trigger_sms()
 """
 
 import os
+import re
 import csv
 import math
 from twilio.rest import Client
@@ -27,21 +29,29 @@ PROVIDERS_CSV = os.path.join(
     "data", "providers.csv"
 )
 
-# ── Trigger phrase — must match prompt.py exactly ─────────────────────────────
-SMS_TRIGGER_PHRASE = "alerting the nearest doctor"
+# ── Trigger phrases ───────────────────────────────────────────────────────────
+# The evaluated system prompt (rag.py SYSTEM) instructs WEMA to say
+# "help is being alerted", so that is the primary trigger. The older
+# phrases are kept for backward compatibility with fallback responses
+# in prompt.py and any earlier prompt versions.
+SMS_TRIGGER_PHRASES = (
+    "help is being alerted",
+    "alerting the nearest doctor",
+    "alerting a doctor",
+)
 
 # ── Nigerian states and common name variants ──────────────────────────────────
 STATE_KEYWORDS = {
     "Lagos": ["lagos", "alimosho", "ikorodu", "surulere", "ikeja", "mushin",
               "agege", "gbagada", "yaba", "lekki", "ajah", "badagry",
               "ajegunle", "oshodi", "kosofe", "ojodu", "mile 2", "ketu",
-              "ibeju", "ojota", "isale eko", "gbagada", "mainland"],
+              "ibeju", "ojota", "isale eko", "mainland"],
     "Kano": ["kano", "nassarawa kano", "tarauni", "fagge"],
     "Kaduna": ["kaduna", "zaria", "kafanchan"],
     "Oyo": ["ibadan", "oyo", "ogbomoso"],
     "Anambra": ["onitsha", "awka", "nnewi", "anambra"],
     "Enugu": ["enugu", "nsukka"],
-    "Rivers": ["port harcourt", "rivers", "ph"],
+    "Rivers": ["port harcourt", "rivers"],
     "Borno": ["maiduguri", "borno"],
     "Plateau": ["jos", "plateau"],
     "Benue": ["makurdi", "benue"],
@@ -63,6 +73,8 @@ def extract_state(speech_text: str) -> str | None:
     """
     Detects Nigerian state from caller speech.
     Called by app.py on every turn to build location context.
+    Uses word-boundary matching so short keywords cannot match inside
+    other words (e.g. "oyo" must be a word, not part of another word).
     Returns state name or None if not detected.
     """
     if not speech_text:
@@ -70,14 +82,15 @@ def extract_state(speech_text: str) -> str | None:
     text_lower = speech_text.lower()
     for state, keywords in STATE_KEYWORDS.items():
         for keyword in keywords:
-            if keyword in text_lower:
+            if re.search(r"\b" + re.escape(keyword) + r"\b", text_lower):
                 return state
     return None
 
 
 def should_trigger_sms(wema_response: str) -> bool:
-    """Returns True if WEMA response contains the SMS trigger phrase."""
-    return SMS_TRIGGER_PHRASE in wema_response.lower()
+    """Returns True if WEMA's response contains any SMS trigger phrase."""
+    text = wema_response.lower()
+    return any(phrase in text for phrase in SMS_TRIGGER_PHRASES)
 
 
 def haversine_distance(lat1, lon1, lat2, lon2) -> float:
@@ -248,6 +261,20 @@ def alert_nearest_providers(
 
 
 if __name__ == "__main__":
+    print("Testing should_trigger_sms()")
+    print("=" * 50)
+    trigger_tests = [
+        ("Massage your belly now. Help is being alerted to you.", True),
+        ("I am alerting the nearest doctor to you right now.", True),
+        ("I am alerting a doctor near you now.", True),
+        ("Drink water and rest. Visit the clinic today.", False),
+    ]
+    for text, expected in trigger_tests:
+        got = should_trigger_sms(text)
+        mark = "✓" if got == expected else "✗ MISMATCH"
+        print(f"  {mark} [{got}] '{text[:50]}'")
+
+    print()
     print("Testing extract_state()")
     print("=" * 50)
     tests = [
@@ -256,6 +283,7 @@ if __name__ == "__main__":
         "I am in Kano",
         "I live near Jos Plateau",
         "My wife is in Port Harcourt",
+        "My phone is dying please help",   # must NOT match Rivers
         "I am somewhere in Nigeria",
     ]
     for t in tests:

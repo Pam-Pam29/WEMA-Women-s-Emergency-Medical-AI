@@ -9,7 +9,6 @@ CHROMA_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 COLLECTION_NAME = "wema_maternal_health"
 
-# Exact prompt used in the evaluated notebook — do not paraphrase or shorten.
 SYSTEM = (
     "You are WEMA, a voice maternal health assistant in Nigeria. The caller is at home.\n\n"
     "STEP 1 - Check for heavy bleeding AFTER BIRTH (postpartum):\n"
@@ -54,7 +53,7 @@ def load_vectorstore():
 def retrieve_context(vectorstore, question, k=4):
     results = vectorstore.similarity_search(question, k=k)
     context = "\n\n".join([doc.page_content for doc in results])
-    sources = list(set([doc.metadata.get("source_file", "WHO") for doc in results]))
+    sources = sorted({doc.metadata.get("source_file", "WHO") for doc in results})
     return context, sources
 
 
@@ -63,6 +62,10 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
     Retrieves k=4 WHO context chunks then invokes (wema_prompt | ChatGroq).
     client param is accepted for backward compatibility but is unused —
     ChatGroq reads GROQ_API_KEY from the environment automatically.
+
+    Matches the evaluated configuration exactly: Llama 3.3 70B (Groq),
+    temperature=0.2, K=4, no max_tokens cap (the evaluation ran uncapped;
+    a cap can truncate the ordered PPH home-action steps).
     """
     try:
         context, sources = retrieve_context(vectorstore, question, k=4)
@@ -70,7 +73,7 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         if not context.strip():
             return get_fallback_response("no_results"), []
 
-        llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2, max_tokens=200)
+        llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2)
         chain = wema_prompt | llm
         result = chain.invoke({"context": context, "query": question})
         return result.content.strip(), sources
