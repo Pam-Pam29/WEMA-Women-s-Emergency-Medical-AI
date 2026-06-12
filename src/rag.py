@@ -1,11 +1,41 @@
 import os
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from groq import Groq
-from prompt import get_rag_prompt, get_fallback_response
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+from prompt import get_fallback_response
 
 CHROMA_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "knowledge_base")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+COLLECTION_NAME = "wema_maternal_health"
+
+# Exact prompt used in the evaluated notebook — do not paraphrase or shorten.
+SYSTEM = (
+    "You are WEMA, a voice maternal health assistant in Nigeria. The caller is at home.\n\n"
+    "STEP 1 - Check for heavy bleeding AFTER BIRTH (postpartum):\n"
+    "If the woman has given birth and is bleeding heavily, this is postpartum haemorrhage. "
+    "You MUST give these home actions FIRST, in this order:\n"
+    "  1. Massage the lower belly firmly in circles until it feels hard like a ball.\n"
+    "  2. Put the baby to the breast now - suckling makes the womb contract and slows bleeding.\n"
+    "  3. Empty the bladder. Lie flat, keep warm.\n"
+    "Then say help is being alerted and to arrange transport urgently. Do NOT skip the massage "
+    "and breastfeeding - they save lives before help arrives.\n\n"
+    "STEP 2 - For other emergencies:\n"
+    "- If a physical home action helps, give that action first, then urge transport. Examples: "
+    "eclampsia or convulsions -> lie her on her left side, protect from injury, do not restrain; "
+    "newborn not breathing -> dry the baby and rub the back to stimulate, keep warm; "
+    "cord prolapse (cord visible) -> get on hands and knees with chest down and hips up, do not "
+    "push the cord back in.\n"
+    "- If NO physical home action helps (suspected ectopic pregnancy, placenta praevia): do not "
+    "invent one. Say get to a facility immediately by the fastest transport, help is being "
+    "alerted. Add only what to avoid (e.g. do not press the abdomen, do not get up) to prevent "
+    "harm while travelling.\n\n"
+    "ALWAYS: use short, calm sentences. Convey urgency - get to care now, do not wait. "
+    "NEVER mention drug names, prescriptions, or medical procedures.\n\n"
+    "RETRIEVED CLINICAL TEXT:\n{context}"
+)
+
+wema_prompt = ChatPromptTemplate.from_messages([("system", SYSTEM), ("human", "{query}")])
 
 
 def load_vectorstore():
@@ -16,7 +46,7 @@ def load_vectorstore():
     vectorstore = Chroma(
         persist_directory=CHROMA_DB_PATH,
         embedding_function=embeddings,
-        collection_name="wema_maternal_health"
+        collection_name=COLLECTION_NAME,
     )
     return vectorstore
 
@@ -28,23 +58,22 @@ def retrieve_context(vectorstore, question, k=4):
     return context, sources
 
 
-def ask_wema(question: str, vectorstore, client: Groq) -> tuple[str, list[str]]:
+def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
+    """
+    Retrieves k=4 WHO context chunks then invokes (wema_prompt | ChatGroq).
+    client param is accepted for backward compatibility but is unused —
+    ChatGroq reads GROQ_API_KEY from the environment automatically.
+    """
     try:
-        context, sources = retrieve_context(vectorstore, question)
+        context, sources = retrieve_context(vectorstore, question, k=4)
 
         if not context.strip():
             return get_fallback_response("no_results"), []
 
-        prompt = get_rag_prompt(context, question)
-
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=200,
-            temperature=0.2,
-        )
-
-        return response.choices[0].message.content.strip(), sources
+        llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2, max_tokens=200)
+        chain = wema_prompt | llm
+        result = chain.invoke({"context": context, "query": question})
+        return result.content.strip(), sources
 
     except Exception as e:
         print(f"[WEMA RAG ERROR] {e}")
@@ -92,8 +121,7 @@ if __name__ == "__main__":
     groq_key = os.getenv("GROQ_API_KEY")
     if not groq_key:
         groq_key = input("Enter your Groq API key: ").strip()
-
-    client = Groq(api_key=groq_key)
+        os.environ["GROQ_API_KEY"] = groq_key
 
     print("Loading WEMA knowledge base...")
     vectorstore = load_vectorstore()
@@ -102,12 +130,11 @@ if __name__ == "__main__":
     test_questions = [
         "A woman is bleeding heavily after childbirth at home. What should she do?",
         "A pregnant woman has severe headache and blurry vision. What is happening?",
-        "How does WEMA work?",
-        "A woman has fever and foul-smelling discharge 3 days after delivery.",
         "I cannot feel my baby moving for 12 hours. What do I do?",
         "A woman is alone at home and her contractions are 2 minutes apart.",
         "I dey bleed well well after I born. Help me.",
         "My baby no dey cry after delivery. Wetin I go do?",
+        "I think I am pregnant but I have severe pain on one side of my belly.",
     ]
 
     print("=" * 60)
@@ -117,7 +144,7 @@ if __name__ == "__main__":
     for i, question in enumerate(test_questions, 1):
         print(f"\nTest {i}: {question}")
         print("-" * 40)
-        response, sources = ask_wema(question, vectorstore, client)
+        response, sources = ask_wema(question, vectorstore)
         risk = classify_risk(response)
         print(f"WEMA: {response}")
         print(f"Risk: {risk}")

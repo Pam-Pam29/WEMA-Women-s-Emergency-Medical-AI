@@ -45,7 +45,6 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pandas as pd
-from groq import Groq
 from dotenv import load_dotenv
 
 from rag import load_vectorstore, ask_wema
@@ -140,13 +139,13 @@ def yes_no_to_bool(raw) -> bool:
     return str(raw).strip().upper() in ("YES", "TRUE", "1", "Y")
 
 
-def ask_with_retry(caller_input, vectorstore, groq_client):
+def ask_with_retry(caller_input, vectorstore):
     """Calls ask_wema with retries on transient failure. Returns (response, sources, elapsed)."""
     last_err = None
     for attempt in range(1, MAX_RETRIES + 1):
         start = time.time()
         try:
-            response, sources = ask_wema(caller_input, vectorstore, groq_client)
+            response, sources = ask_wema(caller_input, vectorstore)
             return response, sources, time.time() - start, None
         except Exception as e:
             last_err = str(e)
@@ -167,7 +166,7 @@ def run_evaluation():
     groq_key = os.getenv("GROQ_API_KEY")
     if not groq_key:
         groq_key = input("Enter your Groq API key: ").strip()
-    groq_client = Groq(api_key=groq_key)
+        os.environ["GROQ_API_KEY"] = groq_key
 
     print("\nLoading knowledge base...")
     vectorstore = load_vectorstore()
@@ -190,7 +189,7 @@ def run_evaluation():
 
         print(f"[{pos}/{total}] {scenario_id} — {caller_input[:55]}...")
 
-        response, sources, elapsed, err = ask_with_retry(caller_input, vectorstore, groq_client)
+        response, sources, elapsed, err = ask_with_retry(caller_input, vectorstore)
         if err:
             print(f"  [FAILED after retries] {err[:80]}")
 

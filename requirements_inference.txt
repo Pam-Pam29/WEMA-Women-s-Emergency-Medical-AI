@@ -16,6 +16,7 @@ sentence-transformers==3.0.0
 
 # LLM
 groq==0.9.0
+langchain-groq>=0.1.0
 
 # PDF processing (only needed if re-running ingest on the Space)
 pypdf==4.2.0

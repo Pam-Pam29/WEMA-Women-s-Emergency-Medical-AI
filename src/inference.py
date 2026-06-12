@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gradio as gr
 from fastapi import FastAPI
 from pydantic import BaseModel
-from groq import Groq
 from dotenv import load_dotenv
 
 from rag import load_vectorstore, ask_wema
@@ -26,7 +25,6 @@ load_dotenv()
 
 print("WEMA Inference — loading knowledge base...")
 vectorstore = load_vectorstore()
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 print("WEMA Inference — ready.")
 
 # ── FastAPI endpoints ──────────────────────────────────────────────────────────
@@ -45,7 +43,7 @@ def health():
 
 @api.post("/query")
 def query(req: QueryRequest):
-    response, sources = ask_wema(req.caller_input, vectorstore, groq_client)
+    response, sources = ask_wema(req.caller_input, vectorstore)
     return {"response": response, "sources": sources}
 
 
@@ -54,7 +52,7 @@ def query(req: QueryRequest):
 def gradio_query(caller_input: str):
     if not caller_input.strip():
         return "Please describe the emergency.", ""
-    response, sources = ask_wema(caller_input, vectorstore, groq_client)
+    response, sources = ask_wema(caller_input, vectorstore)
     sources_str = ", ".join(sources) if sources else "WHO Guidelines"
     return response, sources_str
 
