@@ -1,0 +1,41 @@
+provider_id,name,type,state,lga,address,phone,latitude,longitude
+P001,Lagos Island General Hospital,General Hospital,Lagos,Lagos Island,1 Hospital Road Lagos Island,+2348023456789,6.4541,3.3947
+P002,LASUTH — Lagos State University Teaching Hospital,Teaching Hospital,Lagos,Ikeja,1 Oba Akinjobi Street Ikeja,+2348034567890,6.5833,3.3500
+P003,Gbagada General Hospital,General Hospital,Lagos,Gbagada,1 Hospital Road Gbagada,+2348045678901,6.5500,3.3833
+P004,Ikorodu General Hospital,General Hospital,Lagos,Ikorodu,Hospital Road Ikorodu,+2348056789012,6.6167,3.5000
+P005,Badagry General Hospital,General Hospital,Lagos,Badagry,Marina Road Badagry,+2348067890123,6.4167,2.8833
+P006,Alimosho General Hospital,General Hospital,Lagos,Alimosho,Opposite Cement Bus Stop Alimosho,+2348078901234,6.5833,3.2667
+P007,Mushin General Hospital,General Hospital,Lagos,Mushin,Mushin Road Lagos,+2348089012345,6.5333,3.3500
+P008,Surulere General Hospital,General Hospital,Lagos,Surulere,23 Adeleke Street Surulere,+2348090123456,6.5000,3.3500
+P009,Aminu Kano Teaching Hospital,Teaching Hospital,Kano,Nassarawa,Zaria Road Kano,+2348012345678,12.0000,8.5167
+P010,Murtala Muhammad Specialist Hospital Kano,Specialist Hospital,Kano,Municipal,Zoo Road Kano,+2348023456780,12.0022,8.5227
+P011,ABUTH — Ahmadu Bello University Teaching Hospital,Teaching Hospital,Kaduna,Zaria,Hospital Road Zaria,+2348034567891,11.0667,7.7000
+P012,Barau Dikko Teaching Hospital,Teaching Hospital,Kaduna,Kaduna North,Ali Akilu Road Kaduna,+2348045678902,10.5167,7.4333
+P013,LUTH — Lagos University Teaching Hospital,Teaching Hospital,Lagos,Surulere,Idi Araba Surulere Lagos,+2348056789013,6.5000,3.3500
+P014,UCH — University College Hospital Ibadan,Teaching Hospital,Oyo,Ibadan North,Queen Elizabeth Road Ibadan,+2348067890124,7.3833,3.9000
+P015,Adeoyo Maternity Hospital Ibadan,Maternity Hospital,Oyo,Ibadan North,Ring Road Ibadan,+2348078901235,7.3833,3.9167
+P016,UNTH — University of Nigeria Teaching Hospital,Teaching Hospital,Enugu,Enugu North,Enugu Abakaliki Road Enugu,+2348089012346,6.4500,7.5333
+P017,NAUTH — Nnamdi Azikiwe University Teaching Hospital,Teaching Hospital,Anambra,Nnewi North,Nnewi Anambra State,+2348090123457,6.0167,6.9167
+P018,UITH — University of Ilorin Teaching Hospital,Teaching Hospital,Kwara,Ilorin South,PMB 1515 Ilorin,+2348012345679,8.5000,4.5500
+P019,JUTH — Jos University Teaching Hospital,Teaching Hospital,Plateau,Jos North,Jos Plateau State,+2348023456781,9.9167,8.8833
+P020,UMTH — University of Maiduguri Teaching Hospital,Teaching Hospital,Borno,Maiduguri,Off Shehu Laminu Way Maiduguri,+2348034567892,11.8333,13.1500
+P021,Federal Medical Centre Abeokuta,Federal Medical Centre,Ogun,Abeokuta South,Idi Aba Abeokuta,+2348045678903,7.1500,3.3500
+P022,Federal Medical Centre Owerri,Federal Medical Centre,Imo,Owerri Municipal,Orlu Road Owerri,+2348056789014,5.4833,7.0333
+P023,UPTH — University of Port Harcourt Teaching Hospital,Teaching Hospital,Rivers,Obio Akpor,East West Road Port Harcourt,+2348067890125,4.8156,7.0498
+P024,UUTH — University of Uyo Teaching Hospital,Teaching Hospital,Akwa Ibom,Uyo,Abak Road Uyo,+2348078901236,5.0333,7.9167
+P025,Federal Medical Centre Calabar,Federal Medical Centre,Cross River,Calabar Municipal,Moore Road Calabar,+2348089012347,4.9500,8.3333
+P026,OAUTH — Obafemi Awolowo University Teaching Hospital,Teaching Hospital,Osun,Ile Ife,Ife Ibadan Road Ile Ife,+2348090123458,7.4833,4.5667
+P027,Wesley Guild Hospital Ilesa,General Hospital,Osun,Ilesa East,Ijesha Road Ilesa,+2348012345670,7.6333,4.7333
+P028,OAUTHC Ile Ife Maternity Unit,Maternity Hospital,Osun,Ile Ife,Obafemi Awolowo University Ile Ife,+2348023456782,7.4833,4.5667
+P029,National Hospital Abuja,Federal Teaching Hospital,FCT,Municipal,Central Business District Abuja,+2348034567893,9.0500,7.4833
+P030,NISA Premier Hospital Abuja,Private Hospital,FCT,Jabi,Plot 618 Cadastral Zone Jabi Abuja,+2348045678904,9.0667,7.4500
+P031,Garki Hospital Abuja,General Hospital,FCT,Garki,Area 11 Garki Abuja,+2348056789015,9.0333,7.4833
+P032,Sokoto Specialist Hospital,Specialist Hospital,Sokoto,Sokoto North,Specialist Hospital Road Sokoto,+2348067890126,13.0622,5.2339
+P033,Usman Danfodiyo University Teaching Hospital,Teaching Hospital,Sokoto,Sokoto North,Sultan Abubakar Road Sokoto,+2348078901237,13.0667,5.2500
+P034,Federal Medical Centre Gusau,Federal Medical Centre,Zamfara,Gusau,Tudun Wada Gusau,+2348089012348,12.1667,6.6667
+P035,Makurdi General Hospital,General Hospital,Benue,Makurdi,Hospital Road Makurdi,+2348090123459,7.7333,8.5333
+P036,Benue State University Teaching Hospital,Teaching Hospital,Benue,Makurdi,North Bank Makurdi,+2348012345671,7.7500,8.5167
+P037,EKSUTH — Ekiti State University Teaching Hospital,Teaching Hospital,Ekiti,Ado Ekiti,Ado Ekiti Ekiti State,+2348023456783,7.6333,5.2167
+P038,Federal Medical Centre Keffi,Federal Medical Centre,Nasarawa,Keffi,Along Keffi Lafia Road,+2348034567894,8.8500,7.8667
+P039,Dalhatu Araf Specialist Hospital Lafia,Specialist Hospital,Nasarawa,Lafia,Lafia Nasarawa State,+2348045678905,8.4833,8.5167
+P040,Zaria General Hospital,General Hospital,Kaduna,Zaria,Tudun Wada Zaria,+2348056789016,11.0667,7.6833

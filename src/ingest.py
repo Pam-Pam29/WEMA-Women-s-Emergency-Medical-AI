@@ -13,6 +13,8 @@ SKIP_FILES = [
     "PRIVATE",
     "Sista_Health",
     "notebook",
+    "who guildelines of malaria in pregnancy",
+    "fdata-8-1594062",
 ]
 
 from langchain_community.document_loaders import PyPDFLoader

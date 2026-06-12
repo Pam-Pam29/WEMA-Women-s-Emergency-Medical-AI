@@ -3,7 +3,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "python src/voice.py",
+        "startCommand": "python src/app.py",
         "restartPolicyType": "ON_FAILURE"
     }
 }
