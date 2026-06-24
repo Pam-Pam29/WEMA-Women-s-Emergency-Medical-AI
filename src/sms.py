@@ -4,7 +4,7 @@ src/sms.py
 
 Triggered when WEMA's response contains an alert phrase (see SMS_TRIGGER_PHRASES).
 Finds the 3 nearest healthcare providers to the caller's location.
-Sends SMS alert to all 3 via Twilio.
+Sends SMS alert to all 3 providers AND sends facility details back to caller.
 
 Exports used by app.py:
   - alert_nearest_providers()
@@ -17,10 +17,12 @@ import re
 import csv
 import math
 from twilio.rest import Client
+from dotenv import load_dotenv
+load_dotenv()
 
 # ── Twilio credentials ────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_AUTH_TOKEN  = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_FROM_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 # ── Provider database ─────────────────────────────────────────────────────────
@@ -30,10 +32,6 @@ PROVIDERS_CSV = os.path.join(
 )
 
 # ── Trigger phrases ───────────────────────────────────────────────────────────
-# The evaluated system prompt (rag.py SYSTEM) instructs WEMA to say
-# "help is being alerted", so that is the primary trigger. The older
-# phrases are kept for backward compatibility with fallback responses
-# in prompt.py and any earlier prompt versions.
 SMS_TRIGGER_PHRASES = (
     "help is being alerted",
     "alerting the nearest doctor",
@@ -70,13 +68,7 @@ STATE_KEYWORDS = {
 
 
 def extract_state(speech_text: str) -> str | None:
-    """
-    Detects Nigerian state from caller speech.
-    Called by app.py on every turn to build location context.
-    Uses word-boundary matching so short keywords cannot match inside
-    other words (e.g. "oyo" must be a word, not part of another word).
-    Returns state name or None if not detected.
-    """
+    """Detects Nigerian state from caller speech."""
     if not speech_text:
         return None
     text_lower = speech_text.lower()
@@ -97,9 +89,10 @@ def haversine_distance(lat1, lon1, lat2, lon2) -> float:
     """Straight-line distance in km between two GPS coordinates."""
     R = 6371
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    dphi       = math.radians(lat2 - lat1)
+    dlambda    = math.radians(lon2 - lon1)
+    a = (math.sin(dphi/2)**2 +
+         math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2)
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
@@ -111,7 +104,7 @@ def load_providers() -> list:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
-                    row["latitude"] = float(row["latitude"])
+                    row["latitude"]  = float(row["latitude"])
                     row["longitude"] = float(row["longitude"])
                     providers.append(row)
                 except ValueError:
@@ -154,7 +147,7 @@ def find_nearest_providers(
     return providers[:n]
 
 
-def build_sms_message(
+def build_provider_sms(
     caller_number: str,
     emergency_type: str,
     call_sid: str,
@@ -171,6 +164,18 @@ def build_sms_message(
     )
 
 
+def build_caller_sms(providers: list, caller_state: str = None) -> str:
+    """Builds SMS sent to caller with 3 nearest facility details."""
+    location = caller_state if caller_state else "your area"
+    lines = [f"[WEMA] Nearest facilities in {location}:"]
+    for i, p in enumerate(providers, 1):
+        lines.append(f"{i}. {p['name']}")
+        lines.append(f"   {p['address']}")
+        lines.append(f"   {p.get('phone', 'No phone')}")
+    lines.append("Help is on the way. Go to the nearest facility now.")
+    return "\n".join(lines)
+
+
 def alert_nearest_providers(
     caller_number: str,
     emergency_type: str,
@@ -181,7 +186,9 @@ def alert_nearest_providers(
 ) -> dict:
     """
     Main function called by app.py in a background thread.
-    Finds 3 nearest providers and sends SMS to all of them.
+    1. Finds 3 nearest providers
+    2. Sends SMS alert to all 3 providers
+    3. Sends facility details back to caller
     Retries once on failure.
     """
     result = {
@@ -203,21 +210,25 @@ def alert_nearest_providers(
         result["errors"].append("No providers in database")
         return result
 
-    message = build_sms_message(
+    provider_message = build_provider_sms(
         caller_number, emergency_type, call_sid, caller_state
     )
+    caller_message = build_caller_sms(providers, caller_state)
 
     if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER]):
         print("[WEMA SMS] Twilio credentials missing — logging only")
         for p in providers:
             result["providers_alerted"].append(p["name"])
             print(f"  Would alert: {p['name']} — {p.get('phone', 'no phone')}")
+        print(f"  Would notify caller: {caller_number}")
+        print(f"  Caller SMS:\n{caller_message}")
         result["errors"].append("Twilio credentials not set")
         return result
 
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     failed_providers = []
 
+    # ── Send alert to each provider ───────────────────────────────
     for provider in providers:
         phone = provider.get("phone", "").strip()
         if not phone:
@@ -226,7 +237,7 @@ def alert_nearest_providers(
             continue
         try:
             client.messages.create(
-                body=message,
+                body=provider_message,
                 from_=TWILIO_FROM_NUMBER,
                 to=phone
             )
@@ -241,12 +252,12 @@ def alert_nearest_providers(
             failed_providers.append(provider)
             print(f"[WEMA SMS ✗] {provider['name']}: {e}")
 
-    # Retry once for any failures
+    # ── Retry once for failed providers ──────────────────────────
     for provider in failed_providers:
         phone = provider.get("phone", "").strip()
         try:
             client.messages.create(
-                body=message,
+                body=provider_message,
                 from_=TWILIO_FROM_NUMBER,
                 to=phone
             )
@@ -256,6 +267,18 @@ def alert_nearest_providers(
             print(f"[WEMA SMS RETRY ✓] {provider['name']}")
         except Exception as e:
             print(f"[WEMA SMS RETRY ✗] {provider['name']}: {e}")
+
+    # ── Send facility locations back to caller ────────────────────
+    try:
+        client.messages.create(
+            body=caller_message,
+            from_=TWILIO_FROM_NUMBER,
+            to=caller_number
+        )
+        print(f"[WEMA SMS ✓] Caller {caller_number} notified with facility locations")
+    except Exception as e:
+        print(f"[WEMA SMS ✗] Could not notify caller {caller_number}: {e}")
+        result["errors"].append(f"Caller SMS failed: {str(e)}")
 
     return result
 
@@ -270,7 +293,7 @@ if __name__ == "__main__":
         ("Drink water and rest. Visit the clinic today.", False),
     ]
     for text, expected in trigger_tests:
-        got = should_trigger_sms(text)
+        got  = should_trigger_sms(text)
         mark = "✓" if got == expected else "✗ MISMATCH"
         print(f"  {mark} [{got}] '{text[:50]}'")
 
@@ -283,7 +306,7 @@ if __name__ == "__main__":
         "I am in Kano",
         "I live near Jos Plateau",
         "My wife is in Port Harcourt",
-        "My phone is dying please help",   # must NOT match Rivers
+        "My phone is dying please help",
         "I am somewhere in Nigeria",
     ]
     for t in tests:
@@ -298,5 +321,13 @@ if __name__ == "__main__":
     print()
     print("Testing find_nearest_providers() — GPS Alimosho")
     print("=" * 50)
-    for i, p in enumerate(find_nearest_providers(caller_lat=6.5833, caller_lon=3.2667, n=3), 1):
+    for i, p in enumerate(
+        find_nearest_providers(caller_lat=6.5833, caller_lon=3.2667, n=3), 1
+    ):
         print(f"  {i}. {p['name']} — {p['distance_km']:.1f}km")
+
+    print()
+    print("Testing build_caller_sms()")
+    print("=" * 50)
+    test_providers = find_nearest_providers(caller_state="Lagos", n=3)
+    print(build_caller_sms(test_providers, "Lagos"))

@@ -1,0 +1,27 @@
+import azure.cognitiveservices.speech as speechsdk
+import os
+
+AZURE_SPEECH_KEY    = "8dML36ujOegtR52lULxlVTa1tMbP7Y0FGIT1LJQREkRkvb1xUM6fJQQJ99CFACrIdLPXJ3w3AAAYACOGYGo0"
+AZURE_SPEECH_REGION = "southafricanorth"
+
+def test_voice(text, voice):
+    speech_config = speechsdk.SpeechConfig(
+        subscription=AZURE_SPEECH_KEY,
+        region=AZURE_SPEECH_REGION
+    )
+    speech_config.speech_synthesis_voice_name = voice
+    synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+    
+    print(f"Testing voice: {voice}")
+    result = synthesizer.speak_text_async(text).get()
+    
+    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        print(f"✅ {voice} — SUCCESS")
+    else:
+        print(f"❌ {voice} — FAILED: {result.reason}")
+
+test_text = "You are bleeding heavily after birth. This is an emergency. Massage your lower belly firmly in circles until it feels hard like a ball. Help is being alerted."
+
+# Test both Nigerian voices
+test_voice(test_text, "en-NG-EzinneNeural")  # female
+test_voice(test_text, "en-NG-AbeoNeural")     # male
