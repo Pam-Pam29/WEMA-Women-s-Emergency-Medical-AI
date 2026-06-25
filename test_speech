@@ -1,7 +1,7 @@
 import azure.cognitiveservices.speech as speechsdk
 import os
 
-AZURE_SPEECH_KEY    = "8dML36ujOegtR52lULxlVTa1tMbP7Y0FGIT1LJQREkRkvb1xUM6fJQQJ99CFACrIdLPXJ3w3AAAYACOGYGo0"
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 AZURE_SPEECH_REGION = "southafricanorth"
 
 def test_voice(text, voice):
