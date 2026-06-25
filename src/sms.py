@@ -16,14 +16,53 @@ import os
 import re
 import csv
 import math
+import time
 from twilio.rest import Client
 from dotenv import load_dotenv
 load_dotenv()
 
-# ── Twilio credentials ────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN  = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_FROM_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
+FAILED_SMS_LOG = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "failed_sms.log"
+)
+
+
+def _log_failed_sms(to: str, body: str, error: str) -> None:
+    """Appends a failed SMS to failed_sms.log for manual follow-up."""
+    try:
+        with open(FAILED_SMS_LOG, "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} | TO: {to} | ERROR: {error} | MSG: {body}\n")
+    except Exception as log_err:
+        print(f"[WEMA SMS] Could not write to failed_sms.log: {log_err}")
+
+
+def _send_sms(to: str, body: str) -> bool:
+    """
+    Sends a single SMS via Twilio.
+    Retries once on failure. Logs to failed_sms.log if both attempts fail.
+    Returns True if sent successfully.
+    """
+    if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER]):
+        print(f"[WEMA SMS] Twilio credentials missing — would send to {to}: {body[:60]}")
+        return False
+
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    for attempt in range(2):
+        try:
+            client.messages.create(body=body, from_=TWILIO_FROM_NUMBER, to=to)
+            return True
+        except Exception as e:
+            if attempt == 0:
+                print(f"[WEMA SMS] Retrying {to} after error: {e}")
+                time.sleep(2)
+            else:
+                print(f"[WEMA SMS ✗] Final failure for {to}: {e}")
+                _log_failed_sms(to, body, str(e))
+    return False
 
 # ── Provider database ─────────────────────────────────────────────────────────
 PROVIDERS_CSV = os.path.join(
@@ -215,19 +254,6 @@ def alert_nearest_providers(
     )
     caller_message = build_caller_sms(providers, caller_state)
 
-    if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER]):
-        print("[WEMA SMS] Twilio credentials missing — logging only")
-        for p in providers:
-            result["providers_alerted"].append(p["name"])
-            print(f"  Would alert: {p['name']} — {p.get('phone', 'no phone')}")
-        print(f"  Would notify caller: {caller_number}")
-        print(f"  Caller SMS:\n{caller_message}")
-        result["errors"].append("Twilio credentials not set")
-        return result
-
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-    failed_providers = []
-
     # ── Send alert to each provider ───────────────────────────────
     for provider in providers:
         phone = provider.get("phone", "").strip()
@@ -235,50 +261,24 @@ def alert_nearest_providers(
             result["failed_count"] += 1
             result["errors"].append(f"No phone for {provider['name']}")
             continue
-        try:
-            client.messages.create(
-                body=provider_message,
-                from_=TWILIO_FROM_NUMBER,
-                to=phone
-            )
+
+        sent = _send_sms(phone, provider_message)
+        if sent:
             result["providers_alerted"].append(provider["name"])
             result["success_count"] += 1
             dist = provider.get("distance_km")
             dist_str = f"{dist:.1f}km" if isinstance(dist, float) else "state match"
             print(f"[WEMA SMS ✓] {provider['name']} ({phone}) — {dist_str}")
-        except Exception as e:
+        else:
             result["failed_count"] += 1
-            result["errors"].append(f"{provider['name']}: {str(e)}")
-            failed_providers.append(provider)
-            print(f"[WEMA SMS ✗] {provider['name']}: {e}")
-
-    # ── Retry once for failed providers ──────────────────────────
-    for provider in failed_providers:
-        phone = provider.get("phone", "").strip()
-        try:
-            client.messages.create(
-                body=provider_message,
-                from_=TWILIO_FROM_NUMBER,
-                to=phone
-            )
-            result["providers_alerted"].append(provider["name"])
-            result["success_count"] += 1
-            result["failed_count"] -= 1
-            print(f"[WEMA SMS RETRY ✓] {provider['name']}")
-        except Exception as e:
-            print(f"[WEMA SMS RETRY ✗] {provider['name']}: {e}")
+            result["errors"].append(f"{provider['name']}: SMS failed after retry")
 
     # ── Send facility locations back to caller ────────────────────
-    try:
-        client.messages.create(
-            body=caller_message,
-            from_=TWILIO_FROM_NUMBER,
-            to=caller_number
-        )
+    sent = _send_sms(caller_number, caller_message)
+    if sent:
         print(f"[WEMA SMS ✓] Caller {caller_number} notified with facility locations")
-    except Exception as e:
-        print(f"[WEMA SMS ✗] Could not notify caller {caller_number}: {e}")
-        result["errors"].append(f"Caller SMS failed: {str(e)}")
+    else:
+        result["errors"].append("Caller SMS failed after retry")
 
     return result
 

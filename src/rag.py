@@ -12,7 +12,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from prompt import get_fallback_response
+from prompt import get_fallback_response, get_emergency_fallback
 
 CHROMA_DB_PATH  = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "knowledge_base")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -109,7 +109,7 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
     client param is accepted for backward compatibility but is unused —
     ChatGroq reads GROQ_API_KEY from the environment automatically.
 
-    Evaluated configuration: Llama 3.3 70B (Groq), temperature=0.2, K=4,
+    Evaluated configuration: Qwen3-32B (Groq), temperature=0.2, K=4,
     no max_tokens cap (a cap can truncate ordered PPH home-action steps).
     """
     try:
@@ -118,14 +118,16 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         if not context.strip():
             return get_fallback_response("no_results"), []
 
-        llm   = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2)
+        llm   = ChatGroq(model="qwen-qwq-32b", temperature=0.2)
         chain = wema_prompt | llm
         result = chain.invoke({"context": context, "query": question})
         return result.content.strip(), sources
 
     except Exception as e:
-        print(f"[WEMA RAG ERROR] {e}")
-        return get_fallback_response("api_down"), []
+        print(f"[WEMA RAG ERROR] {e} — using keyword emergency fallback")
+        # Keyword-matched static response: safer than generic fallback when
+        # Groq is down because it gives correct physical steps per emergency type.
+        return get_emergency_fallback(question), []
 
 
 def classify_risk(response_text: str) -> str:

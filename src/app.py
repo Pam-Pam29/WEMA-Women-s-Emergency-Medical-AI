@@ -15,7 +15,7 @@ import re
 import requests
 import azure.cognitiveservices.speech as speechsdk
 from flask import Flask, request, Response, send_file
-from twilio.twiml.voice_response import VoiceResponse, Gather, Record
+from twilio.twiml.voice_response import VoiceResponse
 from twilio.rest import Client
 from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
@@ -84,12 +84,10 @@ def transcribe_with_deepgram(recording_url: str) -> str:
         )
         audio_response.raise_for_status()
 
-        # Save to temp file
         tmp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4().hex}.wav")
         with open(tmp_path, "wb") as f:
             f.write(audio_response.content)
 
-        # Transcribe with Deepgram
         with open(tmp_path, "rb") as audio_file:
             options = PrerecordedOptions(
                 model="nova-2",
@@ -105,7 +103,6 @@ def transcribe_with_deepgram(recording_url: str) -> str:
         transcript = response.results.channels[0].alternatives[0].transcript.strip()
         print(f"[DEEPGRAM STT] {transcript}")
 
-        # Clean up temp file
         try:
             os.remove(tmp_path)
         except Exception:
@@ -118,9 +115,8 @@ def transcribe_with_deepgram(recording_url: str) -> str:
         return ""
 
 
-def synthesize_speech(text: str) -> str:
+def synthesize_speech(text: str) -> str | None:
     """Convert text to speech using Azure Neural TTS (en-NG-EzinneNeural)."""
-    # Strip markdown bold markers for cleaner speech
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
     text = re.sub(r"\*(.*?)\*", r"\1", text)
 
@@ -168,7 +164,6 @@ def speak_then_record(response: VoiceResponse, text: str, action: str = "/voice/
     else:
         response.say(text, language="en-NG")
 
-    # Record caller speech — Twilio sends recording URL to /voice/transcribe
     response.record(
         action=action,
         method="POST",
@@ -212,7 +207,7 @@ def transcribe():
     call_sid       = request.form.get("CallSid", "unknown")
     caller_number  = request.form.get("From", "Unknown")
     recording_url  = request.form.get("RecordingUrl", "")
-    speech_result  = request.form.get("SpeechResult", "").strip()  # fallback
+    speech_result  = request.form.get("SpeechResult", "").strip()
 
     session  = get_session(call_sid)
     response = VoiceResponse()

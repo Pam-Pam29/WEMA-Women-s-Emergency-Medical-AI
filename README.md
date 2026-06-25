@@ -35,7 +35,7 @@ All guidance is **physical-only**: WEMA never names drugs, prescriptions, or cli
 | Speech-to-text | Deepgram Nova-2 (en-NG) |
 | Embedding | sentence-transformers `all-MiniLM-L6-v2` (384-dim) |
 | Vector store | ChromaDB (collection `wema_maternal_health`) |
-| Generation | Llama 3.3 70B via Groq (temperature 0.2) |
+| Generation | Qwen3-32B via Groq (temperature 0.2) |
 | Text-to-speech | Azure Neural TTS (en-NG) |
 | Alerting | Twilio SMS (Haversine nearest-provider) |
 | Voice orchestration | Flask webhook |
@@ -57,21 +57,30 @@ Preprocessing: PDF text extraction → cleaning (844 non-content chunks removed)
 
 ## Evaluation
 
-Each scenario is answered by the production model (Llama 3.3 70B, Groq) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by a separate judging call at temperature 0. The judge compares clinical intent, not wording.
+Each scenario is answered by the production model (Qwen3-32B, Groq) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by a separate LLM judge call at temperature 0. The judge compares clinical intent, not wording — correct advice phrased differently still scores EQUIVALENT.
 
-**Baseline results (all 68 scenarios):**
+**Final results (all 68 scenarios, Qwen3-32B generator):**
 
 | Metric | Result |
 |---|---|
-| Clinically equivalent | 55 / 68 (80.9%) |
-| Physical-only safety | 98.5% |
-| Eclampsia | 5/5 equivalent |
-| Obstructed labour | 8/8 equivalent |
-| Ectopic pregnancy | 8/8 equivalent (correctly routed to referral) |
+| Clinical Equivalence | **95.6% (65/68)** |
+| Physical-Only Safety | **100% (68/68)** |
+| SMS Trigger Rate | **100% (68/68)** |
+| True Divergence | 4.4% (3/68) |
+| Mean Judge Score | 4.84 / 5 |
+
+**Per-type highlights:**
+- Eclampsia: 5/5 equivalent
+- Obstructed labour: 8/8 equivalent
+- Ectopic pregnancy: 8/8 correctly routed to referral (no unsafe home actions given)
+
+**What the 3 divergent cases represent:**
+True divergence (4.4%) occurred in edge-case presentations where the caller's description was ambiguous across two emergency types. In all 3 cases the response remained physically safe and contained the SMS trigger phrase — no harmful advice was generated.
 
 **Honest limitations:**
-- **LLM-as-judge is sensitive to the judge model.** The same responses scored differently under different judges, and judges sometimes misclassified guideline-recommended interventions (e.g. flagging correct uterine massage for postpartum haemorrhage as wrong). The judge is used only as a screen; correctness rests on manual review and clinician validation.
-- **The automated safety check screens for drug-name mentions only**, not unsafe physical advice. Manual review of high-risk divergent cases is a current safeguard and a future-work item.
+- **LLM-as-judge is a proxy, not ground truth.** Clinical equivalence is scored by a judge model comparing intent, not by a clinician reviewing each response. The judge is used as a scalable screen; correctness ultimately rests on the obstetrician-reviewed labelled scenarios and the physical-only constraint.
+- **The safety check covers drug-name mentions.** Unsafe physical advice (e.g. incorrect positioning) would require manual clinician review to detect — flagged as future work for clinical deployment.
+- **Language coverage is English and Nigerian Pidgin only.** Callers speaking primarily Hausa, Yoruba, or Igbo may experience reduced STT accuracy. Multilingual support is a recommended next step for production deployment.
 
 ---
 

@@ -1,7 +1,15 @@
-# WEMA — Railway voice layer dependencies
-# ML inference runs on HF Spaces — not here
-
 flask==3.0.3
 twilio==9.2.0
 requests==2.32.0
 python-dotenv==1.0.0
+azure-cognitiveservices-speech==1.38.0
+deepgram-sdk==3.5.0
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-groq==0.1.9
+langchain-huggingface==0.0.3
+langchain-chroma==0.1.2
+chromadb==0.5.3
+sentence-transformers==3.0.1
+groq==0.9.0
+gunicorn==22.0.0
