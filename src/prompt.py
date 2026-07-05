@@ -39,7 +39,6 @@ _EMERGENCY_FALLBACKS = {
     ),
 }
 
-# Conversational responses for non-emergency openers
 _CONVERSATIONAL_RESPONSES = {
     "greeting": [
         "hi", "hello", "hey", "good morning", "good afternoon",
@@ -55,9 +54,6 @@ _CONVERSATIONAL_RESPONSES = {
 
 
 def is_conversational(text: str) -> str | None:
-    """
-    Returns conversation type if input is small talk, else None.
-    """
     text_lower = text.lower().strip()
     for intent, phrases in _CONVERSATIONAL_RESPONSES.items():
         if any(text_lower.startswith(p) or text_lower == p for p in phrases):
