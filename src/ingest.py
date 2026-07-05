@@ -69,12 +69,22 @@ def build_knowledge_base(chunks):
     )
 
     print("Building ChromaDB knowledge base...")
+    BATCH_SIZE = 5000
+
+    # Create vectorstore with first batch
     vectorstore = Chroma.from_documents(
-        documents=chunks,
+        documents=chunks[:BATCH_SIZE],
         embedding=embeddings,
         persist_directory=CHROMA_DB_PATH,
         collection_name="wema_maternal_health"
     )
+    print(f"Indexed batch 1: {min(BATCH_SIZE, len(chunks))} chunks")
+
+    # Add remaining chunks in batches
+    for i in range(BATCH_SIZE, len(chunks), BATCH_SIZE):
+        batch = chunks[i:i + BATCH_SIZE]
+        vectorstore.add_documents(batch)
+        print(f"Indexed batch: {i + len(batch)}/{len(chunks)} chunks")
 
     print(f"Knowledge base saved to: {CHROMA_DB_PATH}")
     print(f"Total chunks indexed: {vectorstore._collection.count()}")

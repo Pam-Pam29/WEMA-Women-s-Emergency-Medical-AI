@@ -64,6 +64,7 @@ def _send_sms(to: str, body: str) -> bool:
                 _log_failed_sms(to, body, str(e))
     return False
 
+
 # ── Provider database ─────────────────────────────────────────────────────────
 PROVIDERS_CSV = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -161,7 +162,7 @@ def find_nearest_providers(
 ) -> list:
     """
     Returns n nearest providers.
-    Priority: GPS coordinates > state name > first n in CSV.
+    Priority: GPS coordinates > state name > Lagos default > first n in CSV.
     """
     providers = load_providers()
     if not providers:
@@ -182,8 +183,13 @@ def find_nearest_providers(
         if state_providers:
             return state_providers[:n]
 
-    print("[WEMA SMS] No location — using first providers in CSV")
-    return providers[:n]
+    # Default to Lagos if no location detected
+    print("[WEMA SMS] No location detected — defaulting to Lagos")
+    lagos_providers = [
+        p for p in providers
+        if p.get("state", "").lower() == "lagos"
+    ]
+    return lagos_providers[:n] if lagos_providers else providers[:n]
 
 
 def build_provider_sms(
