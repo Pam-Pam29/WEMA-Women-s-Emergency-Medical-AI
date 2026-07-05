@@ -1,6 +1,12 @@
 """
 WEMA — Women's Emergency Medical AI
 src/app.py
+
+Hybrid STT approach:
+- <Gather input="speech"> for instant "Please hold" (no silence gap)
+- Deepgram Nova-2 for accurate transcription in background
+- Twilio REST API to redirect call when response is ready
+- Short looping ACK audio plays until response is ready
 """
 
 import os
@@ -50,16 +56,10 @@ except Exception as e:
 
 audio_cache: dict[str, str] = {}
 call_sessions: dict[str, dict] = {}
-transcription_results: dict[str, str] = {}
-transcription_events: dict[str, threading.Event] = {}
+response_ready: dict[str, dict] = {}
 
-ACK_TEXT = (
-    "Please hold while I get emergency guidance for you. "
-    "WEMA is here with you. You are not alone. "
-    "Stay calm and keep breathing. "
-    "I am checking the best guidance for your situation right now. "
-    "Please wait just a moment, help is coming."
-)
+# Short ACK — loops repeatedly until response is ready
+ACK_TEXT = "Please hold, WEMA is getting your guidance. "
 ACK_AUDIO_URL = None
 GREETING_AUDIO_URL = None
 
@@ -72,9 +72,6 @@ def get_session(call_sid: str) -> dict:
             "emergency_type": None,
             "caller_state": None,
             "stt_retries": 0,
-            "pending_input": "",
-            "recording_url": "",
-            "speech_result": "",
         }
     return call_sessions[call_sid]
 
@@ -83,27 +80,22 @@ def detect_location_from_twilio(form_data) -> str | None:
     caller_state   = form_data.get("CallerState", "").strip()
     caller_city    = form_data.get("CallerCity", "").strip()
     caller_country = form_data.get("CallerCountry", "").strip()
-
     if caller_country and caller_country.upper() != "NG":
         return None
-
     if caller_state:
         detected = extract_state(caller_state)
         if detected:
-            print(f"[LOCATION] Twilio state: {caller_state} → {detected}")
             return detected
-
     if caller_city:
         detected = extract_state(caller_city)
         if detected:
-            print(f"[LOCATION] Twilio city: {caller_city} → {detected}")
             return detected
-
     return None
 
 
 def transcribe_with_deepgram(recording_url: str) -> str:
     try:
+        time.sleep(1)
         audio_response = requests.get(
             recording_url,
             auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN),
@@ -129,28 +121,15 @@ def transcribe_with_deepgram(recording_url: str) -> str:
 
         transcript = response.results.channels[0].alternatives[0].transcript.strip()
         print(f"[DEEPGRAM STT] {transcript}")
-
         try:
             os.remove(tmp_path)
         except Exception:
             pass
-
         return transcript
 
     except Exception as e:
         print(f"[DEEPGRAM ERROR] {e}")
         return ""
-
-
-def run_deepgram_in_background(call_sid: str, recording_url: str, fallback: str):
-    t0 = time.time()
-    time.sleep(1)  # Wait for Twilio to finalize the recording
-    result = transcribe_with_deepgram(recording_url) or fallback
-    elapsed = time.time() - t0
-    transcription_results[call_sid] = result
-    if call_sid in transcription_events:
-        transcription_events[call_sid].set()
-    print(f"[DEEPGRAM BACKGROUND] {call_sid}: done in {elapsed:.2f}s")
 
 
 def synthesize_speech(text: str) -> str | None:
@@ -214,40 +193,123 @@ def call_inference(caller_input: str) -> tuple[str, list[str]]:
         return get_fallback_response("api_down"), []
 
 
-def speak_then_record(response: VoiceResponse, text: str, action: str = "/voice/transcribe"):
-    audio_url = synthesize_speech(text)
-    if audio_url:
-        response.play(audio_url)
-    else:
-        response.say(text, language="en-NG")
+def process_in_background(call_sid: str, caller_number: str, speech_result: str, recording_url: str):
+    """
+    Background thread:
+    1. Transcribes with Deepgram (accurate Nigerian English)
+    2. Runs RAG + Groq
+    3. Synthesizes TTS
+    4. Redirects live call to /voice/respond
+    """
+    session = get_session(call_sid)
 
-    response.record(
-        action=action,
-        method="POST",
-        max_length=30,
-        timeout=3,
-        play_beep=False,
-        finish_on_key="#",
-        recording_status_callback=f"{APP_BASE_URL}/voice/recording-status",
-        recording_status_callback_method="POST",
-    )
+    # Step 1: Get accurate transcript from Deepgram
+    t0 = time.time()
+    if recording_url:
+        deepgram_transcript = transcribe_with_deepgram(recording_url)
+        final_transcript = deepgram_transcript or speech_result
+    else:
+        final_transcript = speech_result
+
+    print(f"[TIMING] STT: {time.time()-t0:.2f}s | Transcript: {final_transcript}")
+
+    if not final_transcript:
+        session["stt_retries"] += 1
+        text = get_stt_retry_prompt() if session["stt_retries"] <= 1 else get_fallback_response("no_results")
+        audio_url = synthesize_speech(text)
+        response_ready[call_sid] = {"type": "retry", "audio_url": audio_url}
+        _redirect_call(call_sid)
+        return
+
+    session["stt_retries"] = 0
+
+    # Step 2: Detect location from transcript
+    if not session["caller_state"]:
+        detected = extract_state(final_transcript)
+        if detected:
+            session["caller_state"] = detected
+            print(f"[LOCATION] Detected: {detected}")
+
+    # Step 3: Generate response
+    t1 = time.time()
+    intent = is_conversational(final_transcript)
+    if intent:
+        wema_response = get_conversational_response(intent)
+        sources = []
+        sms_triggered = False
+    else:
+        wema_response, sources = call_inference(final_transcript)
+        sms_triggered = should_trigger_sms(wema_response) and not session["providers_alerted"]
+
+    print(f"[TIMING] Groq: {time.time()-t1:.2f}s")
+    print(f"[WEMA {call_sid}] {wema_response}")
+
+    # Step 4: Trigger SMS
+    if sms_triggered:
+        session["providers_alerted"] = True
+        caller_state = session["caller_state"] or "Lagos"
+        threading.Thread(
+            target=alert_nearest_providers,
+            kwargs={
+                "caller_number": caller_number,
+                "emergency_type": final_transcript[:120],
+                "call_sid": call_sid,
+                "caller_state": caller_state,
+            },
+        ).start()
+        print(f"[ALERT] SMS triggered for {call_sid}")
+
+    # Step 5: Synthesize TTS
+    t2 = time.time()
+    main_audio_url = synthesize_speech(wema_response)
+    closing_audio_url = None
+    if sms_triggered:
+        closing_text = (
+            "The locations of the nearest hospitals are being sent to your phone. "
+            "Please go to the nearest facility immediately. "
+            "Stay strong. Help is on the way."
+        )
+        closing_audio_url = synthesize_speech(closing_text)
+    print(f"[TIMING] TTS: {time.time()-t2:.2f}s")
+
+    session["history"].append({"caller": final_transcript, "wema": wema_response})
+
+    # Step 6: Store response and redirect live call
+    response_ready[call_sid] = {
+        "type": "emergency" if sms_triggered else "normal",
+        "main_audio_url": main_audio_url,
+        "closing_audio_url": closing_audio_url,
+        "wema_response": wema_response,
+    }
+    _redirect_call(call_sid)
+
+
+def _redirect_call(call_sid: str):
+    """Interrupt the looping ACK and redirect to /voice/respond."""
+    try:
+        twilio_client.calls(call_sid).update(
+            url=f"{APP_BASE_URL}/voice/respond?call_sid={call_sid}",
+            method="POST"
+        )
+        print(f"[REDIRECT] {call_sid} → /voice/respond")
+    except Exception as e:
+        print(f"[REDIRECT ERROR] {e}")
 
 
 def prewarm_audio():
     global ACK_AUDIO_URL, GREETING_AUDIO_URL
     try:
-        print("Pre-generating acknowledgment audio...")
+        print("Pre-generating ACK audio...")
         ACK_AUDIO_URL = synthesize_speech(ACK_TEXT)
-        print(f"[PREWARM] Acknowledgment ready: {ACK_AUDIO_URL}")
+        print(f"[PREWARM] ACK ready: {ACK_AUDIO_URL}")
     except Exception as e:
-        print(f"[PREWARM] Ack audio failed: {e}")
-
+        print(f"[PREWARM] ACK failed: {e}")
     try:
         print("Pre-generating greeting audio...")
         GREETING_AUDIO_URL = synthesize_speech(get_greeting())
         print(f"[PREWARM] Greeting ready: {GREETING_AUDIO_URL}")
     except Exception as e:
-        print(f"[PREWARM] Greeting audio failed: {e}")
+        print(f"[PREWARM] Greeting failed: {e}")
 
 
 @app.route("/audio/<filename>", methods=["GET"])
@@ -269,145 +331,137 @@ def incoming_call():
 
     response = VoiceResponse()
 
+    # Play greeting instantly
     if GREETING_AUDIO_URL:
         response.play(GREETING_AUDIO_URL)
     else:
         response.say(get_greeting(), language="en-NG")
 
-    response.record(
-        action="/voice/transcribe",
+    # Gather — detects when caller stops speaking instantly
+    response.gather(
+        input="speech",
+        action="/voice/gather",
         method="POST",
-        max_length=30,
-        timeout=3,
-        play_beep=False,
-        finish_on_key="#",
-        recording_status_callback=f"{APP_BASE_URL}/voice/recording-status",
-        recording_status_callback_method="POST",
+        speech_timeout="auto",
+        language="en-NG",
+        profanity_filter=False,
     )
 
     print(f"[CALL] Incoming: {call_sid} | Location: {session['caller_state'] or 'unknown'}")
     return Response(str(response), mimetype="text/xml")
 
 
-@app.route("/voice/transcribe", methods=["POST"])
-def transcribe():
-    call_sid      = request.form.get("CallSid", "unknown")
-    recording_url = request.form.get("RecordingUrl", "")
-    speech_result = request.form.get("SpeechResult", "").strip()
-
-    session  = get_session(call_sid)
-    response = VoiceResponse()
-
-    if recording_url:
-        event = threading.Event()
-        transcription_events[call_sid] = event
-        threading.Thread(
-            target=run_deepgram_in_background,
-            args=(call_sid, recording_url, speech_result),
-            daemon=True
-        ).start()
-        print(f"[DEEPGRAM] Background transcription started for {call_sid}")
-    else:
-        transcription_results[call_sid] = speech_result
-
-    if ACK_AUDIO_URL:
-        response.play(ACK_AUDIO_URL)
-    else:
-        response.say(ACK_TEXT, language="en-NG")
-
-    response.redirect("/voice/process", method="POST")
-    return Response(str(response), mimetype="text/xml")
-
-
-@app.route("/voice/process", methods=["POST"])
-def process():
+@app.route("/voice/gather", methods=["POST"])
+def gather():
+    """
+    Called the instant caller stops speaking.
+    Plays looping ACK immediately, starts background processing.
+    """
     call_sid      = request.form.get("CallSid", "unknown")
     caller_number = request.form.get("From", "Unknown")
+    speech_result = request.form.get("SpeechResult", "").strip()
+    recording_url = request.form.get("RecordingUrl", "")
 
     session  = get_session(call_sid)
     response = VoiceResponse()
 
-    t_process_start = time.time()
-
-    event = transcription_events.get(call_sid)
-    if event:
-        event.wait(timeout=5)
-
-    speech_result = transcription_results.pop(call_sid, "").strip()
-    transcription_events.pop(call_sid, None)
-
-    print(f"[TIMING] Wait for Deepgram: {time.time() - t_process_start:.2f}s")
+    print(f"[GATHER] {call_sid} | Twilio STT: {speech_result}")
 
     if not speech_result:
         session["stt_retries"] += 1
         text = get_stt_retry_prompt() if session["stt_retries"] <= 1 else get_fallback_response("no_results")
-        if session["stt_retries"] > 1:
-            session["stt_retries"] = 0
-        speak_then_record(response, text)
+        response.say(text, language="en-NG")
+        response.gather(
+            input="speech",
+            action="/voice/gather",
+            method="POST",
+            speech_timeout="auto",
+            language="en-NG",
+            profanity_filter=False,
+        )
         return Response(str(response), mimetype="text/xml")
 
-    session["stt_retries"] = 0
-    session["pending_input"] = speech_result
-    print(f"[CALLER {call_sid}] {speech_result}")
-
-    if not session["caller_state"]:
-        detected = extract_state(speech_result)
-        if detected:
-            session["caller_state"] = detected
-            print(f"[LOCATION] Speech detected: {detected}")
-
-    intent = is_conversational(speech_result)
-    if intent:
-        wema_response = get_conversational_response(intent)
-        sources = []
-        print(f"[CONVERSATIONAL] {call_sid}: {intent}")
+    # Play short ACK in loop IMMEDIATELY — no silence
+    if ACK_AUDIO_URL:
+        response.play(ACK_AUDIO_URL, loop=10)
     else:
-        t_groq = time.time()
-        wema_response, sources = call_inference(speech_result)
-        print(f"[TIMING] Groq inference: {time.time() - t_groq:.2f}s")
+        response.say(ACK_TEXT, language="en-NG", loop=10)
 
-    print(f"[WEMA {call_sid}] {wema_response}")
+    # Start background processing — will redirect call when done
+    threading.Thread(
+        target=process_in_background,
+        args=(call_sid, caller_number, speech_result, recording_url),
+        daemon=True
+    ).start()
 
-    sms_triggered = should_trigger_sms(wema_response) and not session["providers_alerted"]
+    return Response(str(response), mimetype="text/xml")
 
-    if sms_triggered:
-        session["providers_alerted"] = True
-        caller_state = session["caller_state"] or "Lagos"
-        print(f"[LOCATION] Final state used for SMS: {caller_state}")
-        threading.Thread(
-            target=alert_nearest_providers,
-            kwargs={
-                "caller_number": caller_number,
-                "emergency_type": session["emergency_type"] or speech_result[:120],
-                "call_sid": call_sid,
-                "caller_state": caller_state,
-            },
-        ).start()
-        print(f"[ALERT] SMS triggered for {call_sid}")
 
-    session["history"].append({"caller": speech_result, "wema": wema_response})
+@app.route("/voice/respond", methods=["POST"])
+def respond():
+    """
+    Called by Twilio REST redirect when processing is complete.
+    Interrupts ACK loop and plays actual WEMA response.
+    """
+    call_sid = request.args.get("call_sid") or request.form.get("CallSid", "unknown")
+    response = VoiceResponse()
 
-    t_tts = time.time()
-    play_text(response, wema_response)
-    print(f"[TIMING] TTS for main response: {time.time() - t_tts:.2f}s")
+    result = response_ready.pop(call_sid, None)
 
-    if sms_triggered:
-        time.sleep(1)
-        closing = (
-            "The locations of the nearest hospitals are being sent to your phone. "
-            "Please go to the nearest facility immediately. "
-            "Stay strong. Help is on the way."
+    if not result:
+        response.say("I am sorry, please call again.", language="en-NG")
+        return Response(str(response), mimetype="text/xml")
+
+    if result["type"] == "retry":
+        audio_url = result.get("audio_url")
+        if audio_url:
+            response.play(audio_url)
+        else:
+            response.say(get_stt_retry_prompt(), language="en-NG")
+        response.gather(
+            input="speech",
+            action="/voice/gather",
+            method="POST",
+            speech_timeout="auto",
+            language="en-NG",
+            profanity_filter=False,
         )
-        play_text(response, closing)
+        return Response(str(response), mimetype="text/xml")
+
+    # Play main guidance
+    main_audio = result.get("main_audio_url")
+    if main_audio:
+        response.play(main_audio)
+    else:
+        response.say(result.get("wema_response", ""), language="en-NG")
+
+    if result["type"] == "emergency":
+        time.sleep(1)
+        closing_audio = result.get("closing_audio_url")
+        if closing_audio:
+            response.play(closing_audio)
+        else:
+            response.say(
+                "The locations of the nearest hospitals are being sent to your phone. "
+                "Please go to the nearest facility immediately. Stay strong.",
+                language="en-NG"
+            )
         response.hangup()
     else:
-        speak_then_record(
-            response,
-            "Is there anything else I can help you with?",
-            action="/voice/transcribe"
+        # Ask if anything else
+        ask_audio = synthesize_speech("Is there anything else I can help you with?")
+        if ask_audio:
+            response.play(ask_audio)
+        else:
+            response.say("Is there anything else I can help you with?", language="en-NG")
+        response.gather(
+            input="speech",
+            action="/voice/gather",
+            method="POST",
+            speech_timeout="auto",
+            language="en-NG",
+            profanity_filter=False,
         )
-
-    print(f"[TIMING] Total /voice/process: {time.time() - t_process_start:.2f}s")
 
     return Response(str(response), mimetype="text/xml")
 
@@ -423,7 +477,7 @@ def health():
         "status": "WEMA voice layer running",
         "number": TWILIO_PHONE_NUMBER,
         "knowledge_base": "loaded" if vectorstore is not None else "not loaded",
-        "stt": "Deepgram Nova-2 (en)",
+        "stt": "Hybrid — Twilio Gather + Deepgram Nova-2",
         "tts": f"Azure Neural TTS REST ({AZURE_VOICE})",
         "tts_region": AZURE_SPEECH_REGION,
     }
