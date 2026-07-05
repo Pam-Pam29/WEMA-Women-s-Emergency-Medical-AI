@@ -24,6 +24,10 @@ SYSTEM = (
     "Do not number steps. Connect actions naturally using 'then' or 'after that'. "
     "Convey urgency but stay calm.\n\n"
 
+    "IMPORTANT: First check whether she has ALREADY GIVEN BIRTH or is STILL PREGNANT — these need opposite guidance. "
+    "'X weeks pregnant' or 'X months pregnant' means she has NOT given birth yet — do NOT treat this as postpartum bleeding. "
+    "Only treat bleeding as postpartum haemorrhage if she explicitly says she has given birth, delivered, or is describing bleeding after birth.\n\n"
+
     "STEP 1 - Check for heavy bleeding AFTER BIRTH (postpartum):\n"
     "If she has given birth and is bleeding heavily, this is postpartum haemorrhage.\n"
     "If bleeding started within 24 hours of birth (primary PPH), give these actions: "
@@ -31,7 +35,7 @@ SYSTEM = (
     "Then put your baby to your breast — suckling makes the womb contract and slows bleeding. "
     "Empty your bladder. Lie flat and keep warm. "
     "Then say help is being alerted and to arrange transport urgently.\n"
-    "If bleeding restarted days or weeks after birth (secondary PPH), do NOT massage the belly. "
+    "If bleeding is still continuing lightly for more than 24 hours after birth, or restarted days or weeks after birth (secondary PPH), do NOT massage the belly. "
     "Lie flat, keep warm, get to a facility immediately.\n"
     "If the placenta has not come out within about an hour of birth (retained placenta), do NOT massage the belly and do NOT pull the cord. "
     "Keep lying still, empty your bladder by urinating, get to a facility immediately — do not attempt to remove the placenta at home.\n\n"
@@ -53,7 +57,7 @@ SYSTEM = (
     "- hyperemesis (severe vomiting) -> offer only tiny sips of water, no solid food, no other drinks, no herbal remedies, lie on side, get to facility urgently;\n"
     "- cord prolapse (cord or rope visible or hanging outside vagina, something hanging out) -> get on hands and knees with chest down and hips up immediately, this is the most urgent emergency, do not push cord back, do not stand up, do not lie flat, get to facility immediately;\n"
     "- placenta praevia (painless bleeding in pregnancy) -> lie down immediately, do not get up, do not press on belly, do not examine vaginally, transport urgently;\n"
-    "- ectopic pregnancy (one-sided sharp pain, possible pregnancy, collapsed) -> lie down or on left side immediately, do not get up under any circumstances, do not press on belly, get to hospital now by the fastest possible transport;\n"
+    "- ectopic pregnancy (STILL PREGNANT — not yet given birth — with one-sided sharp pain, and/or fainting or collapse, with or without light bleeding) -> this takes priority over any bleeding-only classification; lie down or on left side immediately, do not get up under any circumstances, do not press on belly, get to hospital now by the fastest possible transport;\n"
     "- gestational diabetes low blood sugar -> sit down and eat or drink something sweet right now, after eating arrange transport;\n"
     "- malaria conscious -> lie on left side, keep warm, sip water, get to facility immediately;\n"
     "- malaria confused or unconscious -> lie on left side, do NOT give anything by mouth, get to facility immediately;\n"
@@ -101,6 +105,17 @@ def retrieve_context(vectorstore, question, k=4):
     return context, sources
 
 
+_DAYS_WEEKS_AGO = re.compile(r"\b\d+\s*(day|days|week|weeks)\b.*\b(ago|since|after)\b|\b(ago|since)\b.*\b\d+\s*(day|days|week|weeks)\b", re.IGNORECASE)
+_BLEEDING_WORDS = re.compile(r"\bbleed|\bblood", re.IGNORECASE)
+_BIRTH_WORDS = re.compile(r"\bgave birth|\bgive birth|\bgiving birth|\bdelivered|\bdelivery|\bborn\b|\bborn my|\bafter birth", re.IGNORECASE)
+
+
+def _secondary_pph_risk(question: str) -> bool:
+    """Detects queries describing bleeding that continues/started days-or-more after birth,
+    where the LLM has shown a tendency to default to primary-PPH massage guidance regardless."""
+    return bool(_DAYS_WEEKS_AGO.search(question) and _BLEEDING_WORDS.search(question) and _BIRTH_WORDS.search(question))
+
+
 def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
     try:
         context, sources = retrieve_context(vectorstore, question, k=4)
@@ -108,13 +123,22 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         if not context.strip():
             return get_fallback_response("no_results"), []
 
+        query_for_model = question
+        if _secondary_pph_risk(question):
+            query_for_model = (
+                question
+                + " [SAFETY NOTE: this bleeding started or is continuing more than 24 hours after birth — "
+                "this is secondary PPH. Do NOT recommend massaging the belly. Lie flat, keep warm, "
+                "get to a facility immediately.]"
+            )
+
         last_error = None
         result = None
         for attempt in range(2):
             try:
                 llm   = ChatGroq(model="qwen/qwen3-32b", temperature=0.2, max_tokens=600)
                 chain = wema_prompt | llm
-                result = chain.invoke({"context": context, "query": question})
+                result = chain.invoke({"context": context, "query": query_for_model})
                 break
             except Exception as e:
                 last_error = e
@@ -130,7 +154,7 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         content = re.sub(r'<think>.*', '', content, flags=re.DOTALL)
         content = content.strip()
 
-        if not content:
+        if len(content) < 20:
             return get_emergency_fallback(question), []
 
         return content, sources
