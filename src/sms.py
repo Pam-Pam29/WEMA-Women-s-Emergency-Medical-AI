@@ -158,7 +158,7 @@ def find_nearest_providers(
     caller_state: str = None,
     caller_lat: float = None,
     caller_lon: float = None,
-    n: int = 3
+    n: int = 1
 ) -> list:
     """
     Returns n nearest providers.
