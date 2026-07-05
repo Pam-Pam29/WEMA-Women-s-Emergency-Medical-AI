@@ -4,7 +4,8 @@ A voice-first emergency assistant for pregnant women in Nigeria. WEMA answers a 
 
 WEMA is grounded in the **Three Delays Model** of maternal mortality (Thaddeus & Maine, 1994). It targets the delay in *deciding* to seek care (instant triage), and the delays in *reaching* and *receiving* care (provider alert + urgent transport).
 
-**Live app:** https://wema-women-s-emergency-medical-ai.fly.dev/health · **Demo video:** [ADD LINK HERE BEFORE SUBMITTING]
+**Live app:** https://wema-women-s-emergency-medical-ai.fly.dev/health ·
+**Demo video:** https://drive.google.com/file/d/1oj7KgQUYuWaTDzjo0erQvY-Dt-yd6aEg/view?usp=sharing)
 
 ---
 
@@ -31,6 +32,7 @@ All guidance is **physical-only**: WEMA never names drugs, prescriptions, or cli
 ---
 
 ## Architecture
+<img width="1672" height="941" alt="ChatGPT Image Jul 5, 2026, 07_55_21 PM" src="https://github.com/user-attachments/assets/d744c09f-be01-4a78-bfec-e2904c9d7083" />
 
 | Stage | Component |
 |---|---|
@@ -60,6 +62,9 @@ Preprocessing: PDF text extraction → cleaning (844 non-content chunks removed)
 ## Evaluation
 
 Each scenario is answered by the actual production function (`rag.ask_wema()` — hardcoded k=4, temperature=0.2, `qwen/qwen3-32b`) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by an independent LLM judge (`llama-3.3-70b-versatile`, temperature 0). The judge compares clinical intent, not wording. Full results, per-scenario responses, and the iterative fix history are in [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb).
+
+Screenshots are in (evaluation/screenshots/)
+
 
 **Final results (all 68 clinician-approved scenarios, real Groq API calls):**
 
