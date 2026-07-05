@@ -4,6 +4,8 @@ A voice-first emergency assistant for pregnant women in Nigeria. WEMA answers a 
 
 WEMA is grounded in the **Three Delays Model** of maternal mortality (Thaddeus & Maine, 1994). It targets the delay in *deciding* to seek care (instant triage), and the delays in *reaching* and *receiving* care (provider alert + urgent transport).
 
+**Live app:** https://wema-women-s-emergency-medical-ai.fly.dev/health · **Demo video:** [ADD LINK HERE BEFORE SUBMITTING]
+
 ---
 
 ## What WEMA Does
@@ -57,100 +59,117 @@ Preprocessing: PDF text extraction → cleaning (844 non-content chunks removed)
 
 ## Evaluation
 
-Each scenario is answered by the production model (Qwen3-32B, Groq) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by a separate LLM judge call at temperature 0. The judge compares clinical intent, not wording — correct advice phrased differently still scores EQUIVALENT.
+Each scenario is answered by the actual production function (`rag.ask_wema()` — hardcoded k=4, temperature=0.2, `qwen/qwen3-32b`) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by an independent LLM judge (`llama-3.3-70b-versatile`, temperature 0). The judge compares clinical intent, not wording. Full results, per-scenario responses, and the iterative fix history are in [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb).
 
-**Final results (all 68 scenarios, Qwen3-32B generator):**
+**Final results (all 68 clinician-approved scenarios, real Groq API calls):**
 
 | Metric | Result |
 |---|---|
-| Clinical Equivalence | **95.6% (65/68)** |
+| Clinical Equivalence | **94.1% (64/68)** |
 | Physical-Only Safety | **100% (68/68)** |
-| SMS Trigger Rate | **100% (68/68)** |
-| True Divergence | 4.4% (3/68) |
+| SMS Trigger Rate | 98.5% (67/68) |
+| True Divergence | 1.5% (1/68) |
 | Mean Judge Score | 4.84 / 5 |
+| Mean Latency (LLM inference) | ~3s |
 
-**Per-type highlights:**
-- Eclampsia: 5/5 equivalent
-- Obstructed labour: 8/8 equivalent
-- Ectopic pregnancy: 8/8 correctly routed to referral (no unsafe home actions given)
+**Iterative fixes — what this evaluation actually found:**
+Running against the clinician-approved dataset surfaced 6 real safety/quality issues in the SYSTEM prompt that ad hoc testing had missed: a missing retained-placenta protocol (was defaulting to dangerous belly-massage guidance), a missing wound-bleeding protocol (same issue), a missing hyperglycemic-gestational-diabetes protocol, a pregnant-vs-postpartum comprehension bug (a Pidgin ectopic pregnancy case was misread as postpartum bleeding), a missing mastitis protocol (was telling callers to stop breastfeeding, contrary to WHO guidance), and a response-hallucination bug. Each was fixed, redeployed, and re-verified with real API calls. Equivalence rose 89.7% → 86.8% → 91.2% → 94.1% across four full re-runs — the dip in round 2 reflects genuine LLM run-to-run variability at temperature=0.2, not a regression (see Section 5 of the notebook for the full before/after table).
 
-**What the 3 divergent cases represent:**
-True divergence (4.4%) occurred in edge-case presentations where the caller's description was ambiguous across two emergency types. In all 3 cases the response remained physically safe and contained the SMS trigger phrase — no harmful advice was generated.
+**The one remaining divergent case (S004):** a secondary-postpartum-haemorrhage scenario where WEMA recommends immediate transport rather than the ground truth's more nuanced pad-count-based monitoring guidance. This is a safe, conservative over-triage — not dangerous advice — but doesn't match the graded criterion exactly.
 
 **Honest limitations:**
-- **LLM-as-judge is a proxy, not ground truth.** Clinical equivalence is scored by a judge model comparing intent, not by a clinician reviewing each response. The judge is used as a scalable screen; correctness ultimately rests on the obstetrician-reviewed labelled scenarios and the physical-only constraint.
-- **The safety check covers drug-name mentions.** Unsafe physical advice (e.g. incorrect positioning) would require manual clinician review to detect — flagged as future work for clinical deployment.
-- **Language coverage is English and Nigerian Pidgin only.** Callers speaking primarily Hausa, Yoruba, or Igbo may experience reduced STT accuracy. Multilingual support is a recommended next step for production deployment.
+- **Temperature=0.2 shows genuine run-to-run variability** — different scenarios failed on different full-evaluation runs even with an unchanged prompt. A rigorous temperature comparison across the full 68-scenario set (not just a single-question consistency check) is flagged as future work.
+- **LLM-as-judge is a proxy, not ground truth.** The judge is a scalable screen; correctness ultimately rests on the obstetrician-reviewed labelled scenarios (`clinician_approved` = "Approved Supervisor Sign-off" on all 68 rows) and the physical-only constraint.
+- **Language coverage is English and Nigerian Pidgin only** (12/68 scenarios are Pidgin). Hausa, Yoruba, and Igbo are not yet supported — flagged as the top post-capstone priority.
 
 ---
 
-## Setup
+## Live Deployment
+
+**WEMA is deployed and callable right now:**
+- **Phone number:** +1 415 914 8822 (Twilio, routed to production)
+- **Web/health check:** https://wema-women-s-emergency-medical-ai.fly.dev/health
+- **Hosting:** Fly.io, Johannesburg region (`jnb`) — chosen for lower latency to Nigerian callers over alternatives with no African region
+
+---
+
+## Setup (run locally)
 
 ### Prerequisites
 - Python 3.12
-- API keys: Groq, Deepgram, Azure Speech, Twilio
+- API keys: Groq, Deepgram, Azure Speech, Twilio (see `.env.example` for the exact variable names)
 
-### Install
+### 1. Clone and install
 ```bash
-git clone https://github.com/<your-username>/wema.git
-cd wema
+git clone https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI.git
+cd WEMA-Women-s-Emergency-Medical-AI
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Configure
+### 2. Configure secrets
 ```bash
-cp .env.example .env            # then fill in your keys
+cp .env.example .env            # then fill in your own API keys
 ```
 
-### Build the knowledge base
+### 3. Knowledge base
+The knowledge base is already built and committed (`knowledge_base/`, ChromaDB, ~10,025 chunks from 19 WHO/clinical guideline PDFs). To rebuild it from scratch instead:
 ```bash
-python src/ingest.py            # parses guidelines, chunks, embeds into ChromaDB
+python src/ingest.py
 ```
 
-### Run the voice layer
+### 4. Run the voice layer locally
 ```bash
-python src/app.py               # starts the Flask webhook for Twilio
+python src/app.py               # starts the Flask webhook on http://localhost:8080
 ```
+To receive real Twilio calls locally you'll need a tunnel (e.g. ngrok) pointed at port 8080, with `APP_BASE_URL` in `.env` set to that tunnel URL, and the Twilio phone number's webhook pointed at `<tunnel-url>/voice/incoming`.
+
+### 5. Run the evaluation notebook
+Open [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb) in Jupyter/Colab/Kaggle. It clones the repo, loads the real knowledge base, and re-runs the full 68-scenario evaluation against the actual production code.
 
 ---
 
 ## Repository Structure
 
 ```
-wema/
+WEMA-Women-s-Emergency-Medical-AI/
 ├── README.md
 ├── requirements.txt
 ├── .env.example
-├── slides/
-│   └── WEMA_Initial_Software_Demo.pptx
+├── Dockerfile                  # production image (used by Fly.io)
+├── fly.toml                    # Fly.io deployment config
 ├── src/
-│   ├── app.py                  # Flask voice webhook (Twilio)
-│   ├── rag.py                  # retrieval + dual-path generation
-│   ├── ingest.py               # builds the ChromaDB knowledge base
-│   └── alerts.py               # Haversine nearest-provider SMS
+│   ├── app.py                  # Flask voice webhook (Twilio + hybrid STT)
+│   ├── rag.py                  # retrieval + dual-path generation (SYSTEM prompt lives here)
+│   ├── sms.py                  # Haversine nearest-provider SMS alerting
+│   ├── prompt.py                # fallback responses, conversational intents
+│   └── ingest.py               # builds the ChromaDB knowledge base from data/pdfs/
 ├── data/
 │   ├── providers.csv           # health facilities (name, location, phone)
-│   └── WEMA_Labeled_Dataset.xlsx   # 68 evaluation scenarios
-├── notebooks/
-│   ├── WEMA_Data.ipynb                # data + visualisations
-│   └── WEMA_Full_Evaluation.ipynb     # 68-scenario evaluation
-└── knowledge_base/             # persisted ChromaDB store
+│   ├── pdfs/                   # source WHO/clinical guideline PDFs
+│   └── WEMA_Labeled_Dataset_final_v2.xlsx   # 68 clinician-approved evaluation scenarios
+├── evaluation/
+│   └── WEMA_Testing_and_Evaluation.ipynb    # real 68-scenario evaluation + iterative fix history
+└── knowledge_base/             # persisted ChromaDB store (committed, ~10,025 chunks)
 ```
 
 ---
 
-## Deployment Plan & MVP
+## Deployment Plan & Execution
 
-**Current MVP:** the retrieval-and-generation pipeline runs end-to-end against the persisted ChromaDB store, callable as `ask_wema()`. Secrets are provided at runtime via environment variables (never committed).
+**Status: deployed and live**, not just planned.
 
-**Path to a live hotline:**
-1. Expose `ask_wema()` as an API endpoint (Swagger / Postman) for integration.
-2. Connect the Flask webhook to Twilio so callers reach WEMA by phone.
-3. Host the inference layer (embedding + retrieval + LLM) on a managed service; keep the lightweight voice layer separate.
-4. Add a manual-review queue for divergent / high-risk verdicts before wider rollout.
-5. Pin the embedding model version alongside `rag.py` to keep the store consistent.
+1. **Image build**: `Dockerfile` builds a Python 3.12 image with all system deps (audio/gstreamer libs for Twilio media), installs `requirements.txt`, and pre-downloads the MiniLM embedding model.
+2. **Runtime config**: `fly.toml` — 2GB RAM, shared CPU, Johannesburg region, persistent volume mount for the knowledge base, health checks against `/health`.
+3. **Secrets**: provided as Fly.io secrets at runtime (`flyctl secrets set ...`), never committed to git.
+4. **Deploy command**: `flyctl deploy -a wema-women-s-emergency-medical-ai` — rolling deploy with automatic health-check verification before traffic cutover.
+5. **Verification**: confirmed via (a) `/health` endpoint, (b) real inbound and outbound Twilio calls exercising the full voice pipeline end-to-end, (c) the 68-scenario evaluation notebook run directly against the deployed knowledge base and SYSTEM prompt.
+
+**Recommended next steps for wider rollout:**
+1. Add a manual-review queue for DIVERGENT/high-risk verdicts before scaling call volume.
+2. Multi-region Fly.io deployment if call volume grows beyond a single Johannesburg machine.
+3. Closed-loop provider ACCEPT/DECLINE via incoming SMS webhook (currently descoped to single-provider alert for MVP — see Known Limitations).
 
 ---
 
