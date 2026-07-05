@@ -343,7 +343,7 @@ def incoming_call():
         action="/voice/gather",
         method="POST",
         speech_timeout="auto",
-        language="en-NG",
+        language="en",
         profanity_filter=False,
     )
 
@@ -376,7 +376,7 @@ def gather():
             action="/voice/gather",
             method="POST",
             speech_timeout="auto",
-            language="en-NG",
+            language="en",
             profanity_filter=False,
         )
         return Response(str(response), mimetype="text/xml")
@@ -423,7 +423,7 @@ def respond():
             action="/voice/gather",
             method="POST",
             speech_timeout="auto",
-            language="en-NG",
+            language="en",
             profanity_filter=False,
         )
         return Response(str(response), mimetype="text/xml")
@@ -459,7 +459,7 @@ def respond():
             action="/voice/gather",
             method="POST",
             speech_timeout="auto",
-            language="en-NG",
+            language="en",
             profanity_filter=False,
         )
 
