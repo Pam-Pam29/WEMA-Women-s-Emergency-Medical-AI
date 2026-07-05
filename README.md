@@ -90,7 +90,7 @@ Each scenario is answered by the **actual production function** (`rag.ask_wema()
 | Mean Judge Score | 4.84 / 5 |
 | Mean Latency (LLM inference) | ~3s |
 
-![Round-by-round iterative fix history]https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI/blob/main/evaluation/screenshots/baseline%20vs%20final%20results.png
+![Round-by-round iterative fix history](https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI/blob/main/evaluation/screenshots/baseline%20vs%20final%20results.png)
 ![68-scenario summary results](https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI/blob/main/evaluation/screenshots/scneario%20evaluation%20results.png)
 
 ---
@@ -142,7 +142,7 @@ Each was fixed, redeployed, and re-verified with real API calls. Equivalence mov
 
 **Future work:**
 - **Full Hausa, Yoruba, and Igbo support** — the top post-capstone priority, since the women most at risk are least likely to speak fluent English under stress. Evaluation exposed a real Pidgin comprehension failure, so language robustness is a concrete gap, not a nice-to-have.
-- **Closed-loop provider response** — ACCEPT/DECLINE by SMS reply with automatic escalation (currently descoped to single-provider one-way alert for the MVP).
+- **Closed-loop provider response** — ACCEPT/DECLINE by SMS reply with automatic escalation.
 - **Rigorous temperature comparison** across the full 68-scenario set (not just a single-question consistency check).
 - **Multi-region deployment** if call volume outgrows a single Johannesburg machine.
 
