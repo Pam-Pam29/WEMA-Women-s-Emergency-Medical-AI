@@ -4,7 +4,7 @@ src/sms.py
 
 Triggered when WEMA's response contains an alert phrase (see SMS_TRIGGER_PHRASES).
 Finds the 3 nearest healthcare providers to the caller's location.
-Sends SMS alert to all 3 providers AND sends facility details back to caller.
+Sends SMS alert to the 1 nearest provider AND sends facility details for all 3 back to caller.
 
 Exports used by app.py:
   - alert_nearest_providers()
@@ -232,8 +232,8 @@ def alert_nearest_providers(
     """
     Main function called by app.py in a background thread.
     1. Finds 3 nearest providers
-    2. Sends SMS alert to all 3 providers
-    3. Sends facility details back to caller
+    2. Sends SMS alert to the nearest provider only
+    3. Sends facility details for all 3 back to caller
     Retries once on failure.
     """
     result = {
@@ -260,24 +260,23 @@ def alert_nearest_providers(
     )
     caller_message = build_caller_sms(providers, caller_state)
 
-    # ── Send alert to each provider ───────────────────────────────
-    for provider in providers:
-        phone = provider.get("phone", "").strip()
-        if not phone:
-            result["failed_count"] += 1
-            result["errors"].append(f"No phone for {provider['name']}")
-            continue
-
+    # ── Send alert to the nearest provider only ───────────────────
+    nearest_provider = providers[0]
+    phone = nearest_provider.get("phone", "").strip()
+    if not phone:
+        result["failed_count"] += 1
+        result["errors"].append(f"No phone for {nearest_provider['name']}")
+    else:
         sent = _send_sms(phone, provider_message)
         if sent:
-            result["providers_alerted"].append(provider["name"])
+            result["providers_alerted"].append(nearest_provider["name"])
             result["success_count"] += 1
-            dist = provider.get("distance_km")
+            dist = nearest_provider.get("distance_km")
             dist_str = f"{dist:.1f}km" if isinstance(dist, float) else "state match"
-            print(f"[WEMA SMS ✓] {provider['name']} ({phone}) — {dist_str}")
+            print(f"[WEMA SMS ✓] {nearest_provider['name']} ({phone}) — {dist_str}")
         else:
             result["failed_count"] += 1
-            result["errors"].append(f"{provider['name']}: SMS failed after retry")
+            result["errors"].append(f"{nearest_provider['name']}: SMS failed after retry")
 
     # ── Send facility locations back to caller ────────────────────
     sent = _send_sms(caller_number, caller_message)
