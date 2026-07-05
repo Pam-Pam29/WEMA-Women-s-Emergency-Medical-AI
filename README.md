@@ -7,8 +7,6 @@ WEMA is grounded in the **Three Delays Model** of maternal mortality (Thaddeus &
 **Live app:** https://wema-women-s-emergency-medical-ai.fly.dev/health
 **Demo video:** https://drive.google.com/file/d/1oj7KgQUYuWaTDzjo0erQvY-Dt-yd6aEg/view?usp=sharing
 
-> **Note to reviewer:** verify three things match your committed repo before grading assumptions — (1) the knowledge-base chunk count (this README uses **10,025**; make it identical in Setup, the repo tree, and your count screenshot), (2) the emergency-type count (**17**; confirm against the notebook's per-type table), and (3) the dataset filename in the repo tree matches the committed `.xlsx`. Delete this note before final commit.
-
 ---
 
 ## What WEMA Does
