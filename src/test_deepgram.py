@@ -2,7 +2,7 @@
 import os
 from deepgram import DeepgramClient, PrerecordedOptions
 
-DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "5e695c6678311af83f71639f2996c5ef9e8895b7")
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
 

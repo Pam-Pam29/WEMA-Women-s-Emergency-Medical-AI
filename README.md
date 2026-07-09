@@ -75,7 +75,7 @@ WEMA was tested with **five complementary strategies**, not a single pass — co
 
 ## Evaluation
 
-Each scenario is answered by the **actual production function** (`rag.ask_wema()` — hardcoded k=4, temperature=0.2, `qwen/qwen3-32b`) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by an **independent LLM judge** (`llama-3.3-70b-versatile`, temperature 0) — a separate model from the one being tested, to avoid self-grading bias. The judge compares **clinical intent, not wording**. Full results, per-scenario responses, and the iterative fix history are in [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb). Result screenshots: [`evaluation/screenshots/`](evaluation/screenshots/).
+Each scenario is answered by the **actual production function** (`rag.ask_wema()` — hardcoded k=4, temperature=0.2, `qwen/qwen3-32b`) and scored for clinical equivalence (EQUIVALENT / PARTIAL / DIVERGENT) by an **independent LLM judge** (`llama-3.3-70b-versatile`, temperature 0) — a separate model from the one being tested, to avoid self-grading bias. The judge compares **clinical intent, not wording**. Full results, per-scenario responses, and the iterative fix history are in [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb). Result screenshots: [`evaluation/screenshots/`](evaluation/screenshots/). Earlier evaluation runs (an earlier Llama-70B architecture, and an exploratory Qwen3 run) are preserved as an authentic record in [`evaluation/history/`](evaluation/history/).
 
 **Final results (all 68 clinician-reviewed scenarios, real Groq API calls):**
 
@@ -222,16 +222,23 @@ WEMA-Women-s-Emergency-Medical-AI/
 │   ├── app.py                  # Flask voice webhook (Twilio + hybrid STT)
 │   ├── rag.py                  # retrieval + dual-path generation (SYSTEM prompt lives here)
 │   ├── sms.py                  # Haversine nearest-provider SMS alerting
-│   ├── prompt.py               # fallback responses, conversational intents
-│   └── ingest.py               # builds the ChromaDB knowledge base from data/pdfs/
+│   ├── prompt.py                # fallback responses, conversational intents
+│   ├── ingest.py                # builds the ChromaDB knowledge base from data/pdfs/
+│   ├── test_call.py             # manual test: places a real outbound call to the deployed number
+│   └── test_deepgram.py         # manual test: verifies Deepgram STT connectivity
 ├── data/
 │   ├── providers.csv           # health facilities (name, location, phone)
 │   ├── pdfs/                   # source WHO/clinical guideline PDFs
 │   └── WEMA_Labeled_Dataset_final_v2.xlsx   # 68 clinician-reviewed evaluation scenarios
 ├── evaluation/
-│   ├── WEMA_Testing_and_Evaluation.ipynb    # real 68-scenario evaluation + iterative fix history
+│   ├── WEMA_Testing_and_Evaluation.ipynb    # canonical 68-scenario evaluation (94.1%)
+│   ├── history/                              # authentic earlier evaluation runs — see history/README.md
+│   │   ├── README.md
+│   │   ├── WEMA_Full_Evaluation_Colab.ipynb
+│   │   └── WEMA_—_Qwen3_32B_on_Groq.ipynb
 │   └── screenshots/            # testing-result screenshots referenced in this README
-└── knowledge_base/             # persisted ChromaDB store (committed, ~10,025 chunks)
+├── knowledge_base/             # persisted ChromaDB store (committed, ~10,025 chunks)
+└── archive/                     # superseded pre-final-architecture files — see archive/README.md
 ```
 
 ---

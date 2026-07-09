@@ -31,3 +31,7 @@ Thumbs.db
 wema_prod_env/
 knowledge_base_corrupted_backup/
 build_log.txt
+
+# AI-assistant config (not part of academic submission)
+.claude/
+.qodo/
