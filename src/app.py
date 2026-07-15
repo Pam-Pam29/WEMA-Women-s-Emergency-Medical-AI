@@ -16,7 +16,6 @@ import re
 import requests
 from flask import Flask, request, Response, send_file
 from twilio.twiml.voice_response import VoiceResponse
-from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
@@ -29,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from prompt import get_greeting, get_stt_retry_prompt, get_fallback_response, is_conversational, get_conversational_response
 from sms import alert_nearest_providers, extract_state, should_trigger_sms
 from rag import ask_wema, load_vectorstore
+from session_store import SessionStore
 
 load_dotenv()
 
@@ -55,26 +55,12 @@ except Exception as e:
     print(f"[WARNING] Could not load vectorstore: {e}")
     vectorstore = None
 
-audio_cache: dict[str, str] = {}
-call_sessions: dict[str, dict] = {}
-response_ready: dict[str, dict] = {}
+sessions = SessionStore()
 
 # Short ACK — loops repeatedly until response is ready
 ACK_TEXT = "Please hold, WEMA is getting your guidance. "
 ACK_AUDIO_URL = None
 GREETING_AUDIO_URL = None
-
-
-def get_session(call_sid: str) -> dict:
-    if call_sid not in call_sessions:
-        call_sessions[call_sid] = {
-            "history": [],
-            "providers_alerted": False,
-            "emergency_type": None,
-            "caller_state": None,
-            "stt_retries": 0,
-        }
-    return call_sessions[call_sid]
 
 
 def detect_location_from_twilio(form_data) -> str | None:
@@ -168,7 +154,7 @@ def synthesize_speech(text: str) -> str | None:
         with open(filepath, "wb") as f:
             f.write(tts_response.content)
 
-        audio_cache[filename] = filepath
+        sessions.cache_audio(filename, filepath)
         return f"{APP_BASE_URL}/audio/{filename}"
 
     except Exception as e:
@@ -205,7 +191,7 @@ def process_in_background(call_sid: str, caller_number: str, speech_result: str,
     3. Synthesizes TTS
     4. Redirects live call to /voice/respond
     """
-    session = get_session(call_sid)
+    session = sessions.get_session(call_sid)
 
     # Step 1: Get accurate transcript from Deepgram
     t0 = time.time()
@@ -221,7 +207,7 @@ def process_in_background(call_sid: str, caller_number: str, speech_result: str,
         session["stt_retries"] += 1
         text = get_stt_retry_prompt() if session["stt_retries"] <= 1 else get_fallback_response("no_results")
         audio_url = synthesize_speech(text)
-        response_ready[call_sid] = {"type": "retry", "audio_url": audio_url}
+        sessions.set_response_ready(call_sid, {"type": "retry", "audio_url": audio_url})
         _redirect_call(call_sid)
         return
 
@@ -279,12 +265,12 @@ def process_in_background(call_sid: str, caller_number: str, speech_result: str,
     session["history"].append({"caller": final_transcript, "wema": wema_response})
 
     # Step 6: Store response and redirect live call
-    response_ready[call_sid] = {
+    sessions.set_response_ready(call_sid, {
         "type": "emergency" if sms_triggered else "normal",
         "main_audio_url": main_audio_url,
         "closing_audio_url": closing_audio_url,
         "wema_response": wema_response,
-    }
+    })
     _redirect_call(call_sid)
 
 
@@ -318,7 +304,7 @@ def prewarm_audio():
 
 @app.route("/audio/<filename>", methods=["GET"])
 def serve_audio(filename):
-    filepath = audio_cache.get(filename)
+    filepath = sessions.get_audio_path(filename)
     if not filepath or not os.path.exists(filepath):
         return Response("Not found", status=404)
     return send_file(filepath, mimetype="audio/wav")
@@ -327,7 +313,7 @@ def serve_audio(filename):
 @app.route("/voice/incoming", methods=["POST"])
 def incoming_call():
     call_sid = request.form.get("CallSid", "unknown")
-    session  = get_session(call_sid)
+    session  = sessions.get_session(call_sid)
 
     twilio_state = detect_location_from_twilio(request.form)
     if twilio_state:
@@ -363,7 +349,7 @@ def gather():
     speech_result = request.form.get("SpeechResult", "").strip()
     recording_url = request.form.get("RecordingUrl", "")
 
-    session  = get_session(call_sid)
+    session  = sessions.get_session(call_sid)
     response = VoiceResponse()
 
     print(f"[GATHER] {call_sid} | Twilio STT: {speech_result}")
@@ -407,7 +393,7 @@ def respond():
     call_sid = request.args.get("call_sid") or request.form.get("CallSid", "unknown")
     response = VoiceResponse()
 
-    result = response_ready.pop(call_sid, None)
+    result = sessions.pop_response_ready(call_sid)
 
     if not result:
         response.say("I am sorry, please call again.", language="en-NG")
@@ -455,16 +441,6 @@ def respond():
 @app.route("/voice/recording-status", methods=["POST"])
 def recording_status():
     return Response("", status=204)
-
-
-# ── Closed-loop provider alerts (Stage 1: inbound SMS webhook) ────────────────
-# Twilio Messaging webhook target: POST https://<ngrok-or-prod>/sms/incoming
-@app.route("/sms/incoming", methods=["POST"])
-def sms_incoming():
-    from_number = request.form.get("From", "Unknown")
-    body        = request.form.get("Body", "").strip()
-    print(f"[SMS IN] From: {from_number} | Body: {body!r}")
-    return Response(str(MessagingResponse()), mimetype="text/xml")
 
 
 @app.route("/health", methods=["GET"])
