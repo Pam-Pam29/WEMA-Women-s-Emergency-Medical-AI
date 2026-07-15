@@ -48,6 +48,8 @@ All guidance is **physical-only**: WEMA never names drugs, prescriptions, or cli
 
 **Code organisation:** the system is modular by responsibility — `app.py` (voice orchestration), `rag.py` (retrieval + dual-path generation), `sms.py` (alerting), `prompt.py` (fallbacks/intents), `ingest.py` (knowledge-base build) — so each stage of the pipeline is independently testable.
 
+**Why functional style, not OOP:** each module is a stateless request/response transform (transcript in → guidance out; alert request in → SMS fan-out out), and Flask route handlers are functions by design — wrapping them in classes would add ceremony without adding behaviour. The one piece of real shared *state* — per-call session data (`call_sessions`, `response_ready` in `app.py`; `CASES` in `sms.py`) — is intentionally isolated behind small accessor functions (e.g. `get_session()`) rather than scattered inline, which is the concern a class would otherwise exist to encapsulate. This is a deliberate trade-off for a single-worker webhook service, not an oversight.
+
 ---
 
 ## Data Engineering
@@ -59,17 +61,21 @@ WEMA rests on two labelled data assets:
 
 **Preprocessing pipeline:** PDF text extraction → cleaning (referral forms, citations, headers removed) → fixed-size chunking with overlap → MiniLM embeddings → ChromaDB index.
 
+**Provider data — two files, deliberately different:**
+- `data/providers.csv` — the file `src/sms.py` actually loads at runtime. During development and live demo calls it is intentionally scoped down to a single facility whose phone number is the developer's own test line, **so real Nigerian hospitals are never SMS-spammed by test or demo calls**.
+- `data/providers_production.csv` — the real dataset: 29 facilities across 12 states with real, verified facility phone numbers. This is the file to point `PROVIDERS_CSV` at for an actual production rollout, once real facility partnerships (SMS consent, on-call numbers) are confirmed.
+
 ---
 
 ## Testing Strategies
 
 WEMA was tested with **five complementary strategies**, not a single pass — covering correctness, input variation, edge cases, failure modes, and environment:
 
-1. **Unit tests** — SMS-trigger logic, caller-state extraction, and Haversine provider ranking (notebook Section 2 — all passing).
+1. **Unit tests** — SMS-trigger logic, caller-state extraction, and Haversine provider ranking, plus fallback-response routing. Runnable and CI-able with real `assert`s in [`tests/`](tests/) (`pytest tests/` — 30 passing), not just notebook print statements; also exercised interactively in notebook Section 2.
 2. **Hyperparameter sweep** — retrieval depth k ∈ {2, 4, 6, 8} and temperature ∈ {0.0–0.3}; **k = 4, temperature = 0.2 selected** (Section 3).
 3. **Clinical equivalence evaluation** — 68 clinician-reviewed scenarios, 17 emergency types, **English *and* Nigerian Pidgin** (12/68 Pidgin), scored by an **independent LLM judge** (Sections 4–5).
-4. **Failure-handling tests** — fallback behaviour when Groq or STT is unavailable (Section 7).
-5. **Cross-environment / hardware–software testing** — behaviour verified **identically on a basic feature phone (no internet) and a smartphone**, since the interface is a plain PSTN call; and across **local development vs Fly.io production**. The ML stack (sentence-transformers + ChromaDB) **runs out of memory on 512 MB free tiers and runs stably on the 2 GB production machine** — the deployment configuration is itself a tested performance requirement.
+4. **Failure-handling tests** — fallback behaviour when Groq or STT is unavailable (Section 7, mirrored in `tests/test_prompt.py`).
+5. **Cross-environment / hardware–software testing** — the voice interface is architecturally identical on a basic feature phone and a smartphone (plain PSTN call, no app/data required on the caller's end), though this specific claim is not independently instrumented — it follows from the design, not a captured feature-phone-vs-smartphone test artifact. What *is* directly measured: **local development vs Fly.io production**, where the ML stack (sentence-transformers + ChromaDB) **runs out of memory on 512 MB free tiers and runs stably on the 2 GB production machine** — the deployment configuration is itself a tested performance requirement.
 
 ---
 
@@ -193,10 +199,7 @@ cp .env.example .env            # then fill in your own API keys
 ```
 
 ### 3. Knowledge base
-The knowledge base is already built and committed (`knowledge_base/`, ChromaDB, **~10,025 chunks** from 19 WHO/clinical guideline PDFs). To rebuild from scratch:
-```bash
-python src/ingest.py
-```
+The knowledge base is already built and committed (`knowledge_base/`, ChromaDB, **~10,025 chunks** from 19 WHO/clinical guideline PDFs). `python src/ingest.py` rebuilds it from `data/pdfs/` — but **the source PDFs themselves are not committed** (gitignored for size; 19 clinical guideline documents), so a fresh clone cannot run this step without first placing the source PDFs in `data/pdfs/` yourself. The committed `knowledge_base/` is the only rebuild path a fresh clone actually has.
 
 ### 4. Run the voice layer locally
 ```bash
@@ -204,7 +207,14 @@ python src/app.py               # starts the Flask webhook on http://localhost:8
 ```
 To receive real Twilio calls locally you'll need a tunnel (e.g. ngrok) pointed at port 8080, with `APP_BASE_URL` in `.env` set to that tunnel URL, and the Twilio number's webhook pointed at `<tunnel-url>/voice/incoming`.
 
-### 5. Run the evaluation notebook
+### 5. Run the unit tests
+```bash
+pip install -r requirements-dev.txt
+pytest tests/
+```
+Runs the SMS-trigger, state-extraction, Haversine-ranking, and fallback-response tests against the real `src/sms.py` and `src/prompt.py` — no API keys or knowledge base required.
+
+### 6. Run the evaluation notebook
 Open [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_and_Evaluation.ipynb) in Jupyter/Colab/Kaggle. It clones the repo, loads the real knowledge base, and re-runs the full 68-scenario evaluation against the actual production code.
 
 ---
@@ -215,6 +225,7 @@ Open [`evaluation/WEMA_Testing_and_Evaluation.ipynb`](evaluation/WEMA_Testing_an
 WEMA-Women-s-Emergency-Medical-AI/
 ├── README.md
 ├── requirements.txt
+├── requirements-dev.txt        # adds pytest for running tests/
 ├── .env.example
 ├── Dockerfile                  # production image (used by Fly.io)
 ├── fly.toml                    # Fly.io deployment config
@@ -226,9 +237,11 @@ WEMA-Women-s-Emergency-Medical-AI/
 │   ├── ingest.py                # builds the ChromaDB knowledge base from data/pdfs/
 │   ├── test_call.py             # manual test: places a real outbound call to the deployed number
 │   └── test_deepgram.py         # manual test: verifies Deepgram STT connectivity
+├── tests/                      # pytest — sms.py + prompt.py unit tests (`pytest tests/`)
 ├── data/
-│   ├── providers.csv           # health facilities (name, location, phone)
-│   ├── pdfs/                   # source WHO/clinical guideline PDFs
+│   ├── providers.csv           # runtime provider file — demo-scoped to 1 facility, see Data Engineering
+│   ├── providers_production.csv # real 29-facility dataset, real numbers — for production rollout
+│   ├── pdfs/                   # source WHO/clinical guideline PDFs (not committed, see Setup)
 │   └── WEMA_Labeled_Dataset_final_v2.xlsx   # 68 clinician-reviewed evaluation scenarios
 ├── evaluation/
 │   ├── WEMA_Testing_and_Evaluation.ipynb    # canonical 68-scenario evaluation (94.1%)
