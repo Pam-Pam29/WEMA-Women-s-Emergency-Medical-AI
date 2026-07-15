@@ -16,6 +16,7 @@ import re
 import requests
 from flask import Flask, request, Response, send_file
 from twilio.twiml.voice_response import VoiceResponse
+from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
@@ -175,8 +176,11 @@ def synthesize_speech(text: str) -> str | None:
         return None
 
 
-def play_text(response: VoiceResponse, text: str):
-    audio_url = synthesize_speech(text)
+def play_text(response: VoiceResponse, text: str, audio_url: str | None = None):
+    """Plays pre-synthesized audio if given, else synthesizes `text` now;
+    falls back to Twilio's built-in TTS (`say`) if synthesis is unavailable."""
+    if audio_url is None:
+        audio_url = synthesize_speech(text)
     if audio_url:
         response.play(audio_url)
     else:
@@ -332,10 +336,7 @@ def incoming_call():
     response = VoiceResponse()
 
     # Play greeting instantly
-    if GREETING_AUDIO_URL:
-        response.play(GREETING_AUDIO_URL)
-    else:
-        response.say(get_greeting(), language="en-NG")
+    play_text(response, get_greeting(), audio_url=GREETING_AUDIO_URL)
 
     # Gather — detects when caller stops speaking instantly
     response.gather(
@@ -413,11 +414,7 @@ def respond():
         return Response(str(response), mimetype="text/xml")
 
     if result["type"] == "retry":
-        audio_url = result.get("audio_url")
-        if audio_url:
-            response.play(audio_url)
-        else:
-            response.say(get_stt_retry_prompt(), language="en-NG")
+        play_text(response, get_stt_retry_prompt(), audio_url=result.get("audio_url"))
         response.gather(
             input="speech",
             action="/voice/gather",
@@ -429,31 +426,20 @@ def respond():
         return Response(str(response), mimetype="text/xml")
 
     # Play main guidance
-    main_audio = result.get("main_audio_url")
-    if main_audio:
-        response.play(main_audio)
-    else:
-        response.say(result.get("wema_response", ""), language="en-NG")
+    play_text(response, result.get("wema_response", ""), audio_url=result.get("main_audio_url"))
 
     if result["type"] == "emergency":
         time.sleep(1)
-        closing_audio = result.get("closing_audio_url")
-        if closing_audio:
-            response.play(closing_audio)
-        else:
-            response.say(
-                "The locations of the nearest hospitals are being sent to your phone. "
-                "Please go to the nearest facility immediately. Stay strong.",
-                language="en-NG"
-            )
+        play_text(
+            response,
+            "The locations of the nearest hospitals are being sent to your phone. "
+            "Please go to the nearest facility immediately. Stay strong.",
+            audio_url=result.get("closing_audio_url"),
+        )
         response.hangup()
     else:
         # Ask if anything else
-        ask_audio = synthesize_speech("Is there anything else I can help you with?")
-        if ask_audio:
-            response.play(ask_audio)
-        else:
-            response.say("Is there anything else I can help you with?", language="en-NG")
+        play_text(response, "Is there anything else I can help you with?")
         response.gather(
             input="speech",
             action="/voice/gather",
@@ -469,6 +455,16 @@ def respond():
 @app.route("/voice/recording-status", methods=["POST"])
 def recording_status():
     return Response("", status=204)
+
+
+# ── Closed-loop provider alerts (Stage 1: inbound SMS webhook) ────────────────
+# Twilio Messaging webhook target: POST https://<ngrok-or-prod>/sms/incoming
+@app.route("/sms/incoming", methods=["POST"])
+def sms_incoming():
+    from_number = request.form.get("From", "Unknown")
+    body        = request.form.get("Body", "").strip()
+    print(f"[SMS IN] From: {from_number} | Body: {body!r}")
+    return Response(str(MessagingResponse()), mimetype="text/xml")
 
 
 @app.route("/health", methods=["GET"])
