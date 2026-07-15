@@ -6,6 +6,7 @@ WEMA is grounded in the **Three Delays Model** of maternal mortality (Thaddeus &
 
 **Live app:** https://wema-women-s-emergency-medical-ai.fly.dev/health
 **Demo video:** https://drive.google.com/file/d/1oj7KgQUYuWaTDzjo0erQvY-Dt-yd6aEg/view?usp=sharing
+[![tests](https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI/actions/workflows/tests.yml/badge.svg)](https://github.com/Pam-Pam29/WEMA-Women-s-Emergency-Medical-AI/actions/workflows/tests.yml)
 
 ---
 
@@ -154,6 +155,7 @@ Each was fixed, redeployed, and re-verified with real API calls. Equivalence mov
 - Temperature=0.2 shows genuine run-to-run variability — different scenarios failed on different full runs even with an unchanged prompt.
 - LLM-as-judge is a **proxy, not ground truth**; correctness ultimately rests on the clinician-reviewed labelled scenarios and the physical-only constraint.
 - Language coverage is English and Nigerian Pidgin only; formal signed clinical validation is in progress.
+- The secondary-PPH safety-net regex in `rag.py` (`_secondary_pph_risk`) only matches digit forms of elapsed time ("2 weeks ago"), not spelled-out numbers ("two weeks ago") — a caller phrasing it the second way would not get the extra safety-note injection. Caught by `tests/test_rag_safety_net.py`, not yet fixed.
 
 ---
 
