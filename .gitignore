@@ -35,3 +35,4 @@ build_log.txt
 # AI-assistant config (not part of academic submission)
 .claude/
 .qodo/
+chroma_db/

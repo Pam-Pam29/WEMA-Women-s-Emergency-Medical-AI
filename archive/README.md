@@ -10,3 +10,4 @@ Superseded files from earlier development iterations (pre-final architecture). N
 | `requirements_inference.txt` | paired with the dead `inference.py` / Hugging Face Spaces path |
 | `runtime.txt` | Heroku Python-buildpack file; Fly.io ignores it (version comes from `Dockerfile`) |
 | `WEMA_Data_Exploration.ipynb` | stale exploratory EDA notebook — reads an old ChromaDB snapshot with a since-superseded chunk count; no evaluation evidence, fully reproducible from the currently-committed dataset |
+| `WEMA_Initial_Solution.pptx` | early solution-design deck, superseded by the current architecture and this README |
