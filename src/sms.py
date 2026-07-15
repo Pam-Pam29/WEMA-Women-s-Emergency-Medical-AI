@@ -136,22 +136,81 @@ def haversine_distance(lat1, lon1, lat2, lon2) -> float:
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
+class ProviderDirectory:
+    """Loads and ranks health facilities from a providers CSV.
+
+    Encapsulates the CSV path so the source of truth is an instance
+    attribute rather than a module-level constant baked into every call
+    site — e.g. a caller can point one instance at data/providers.csv
+    (demo-scoped) and another at data/providers_production.csv (real
+    facility data, see README > Data Engineering) without any global state.
+    """
+
+    def __init__(self, csv_path: str = PROVIDERS_CSV):
+        self.csv_path = csv_path
+
+    def load(self) -> list:
+        """Loads all providers from self.csv_path."""
+        providers = []
+        try:
+            with open(self.csv_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        row["latitude"]  = float(row["latitude"])
+                        row["longitude"] = float(row["longitude"])
+                        providers.append(row)
+                    except ValueError:
+                        continue
+        except FileNotFoundError:
+            print(f"[WEMA SMS] providers.csv not found at {self.csv_path}")
+        return providers
+
+    def nearest(
+        self,
+        caller_state: str = None,
+        caller_lat: float = None,
+        caller_lon: float = None,
+        n: int = 1
+    ) -> list:
+        """
+        Returns n nearest providers.
+        Priority: GPS coordinates > state name > Lagos default > first n in CSV.
+        """
+        providers = self.load()
+        if not providers:
+            return []
+
+        if caller_lat is not None and caller_lon is not None:
+            for p in providers:
+                p["distance_km"] = haversine_distance(
+                    caller_lat, caller_lon, p["latitude"], p["longitude"]
+                )
+            return sorted(providers, key=lambda p: p["distance_km"])[:n]
+
+        if caller_state:
+            state_providers = [
+                p for p in providers
+                if p.get("state", "").lower() == caller_state.lower()
+            ]
+            if state_providers:
+                return state_providers[:n]
+
+        # Default to Lagos if no location detected
+        print("[WEMA SMS] No location detected — defaulting to Lagos")
+        lagos_providers = [
+            p for p in providers
+            if p.get("state", "").lower() == "lagos"
+        ]
+        return lagos_providers[:n] if lagos_providers else providers[:n]
+
+
+_default_directory = ProviderDirectory()
+
+
 def load_providers() -> list:
-    """Loads all providers from data/providers.csv."""
-    providers = []
-    try:
-        with open(PROVIDERS_CSV, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                try:
-                    row["latitude"]  = float(row["latitude"])
-                    row["longitude"] = float(row["longitude"])
-                    providers.append(row)
-                except ValueError:
-                    continue
-    except FileNotFoundError:
-        print(f"[WEMA SMS] providers.csv not found at {PROVIDERS_CSV}")
-    return providers
+    """Back-compat module-level wrapper around the default ProviderDirectory."""
+    return _default_directory.load()
 
 
 def find_nearest_providers(
@@ -160,36 +219,10 @@ def find_nearest_providers(
     caller_lon: float = None,
     n: int = 1
 ) -> list:
-    """
-    Returns n nearest providers.
-    Priority: GPS coordinates > state name > Lagos default > first n in CSV.
-    """
-    providers = load_providers()
-    if not providers:
-        return []
-
-    if caller_lat is not None and caller_lon is not None:
-        for p in providers:
-            p["distance_km"] = haversine_distance(
-                caller_lat, caller_lon, p["latitude"], p["longitude"]
-            )
-        return sorted(providers, key=lambda p: p["distance_km"])[:n]
-
-    if caller_state:
-        state_providers = [
-            p for p in providers
-            if p.get("state", "").lower() == caller_state.lower()
-        ]
-        if state_providers:
-            return state_providers[:n]
-
-    # Default to Lagos if no location detected
-    print("[WEMA SMS] No location detected — defaulting to Lagos")
-    lagos_providers = [
-        p for p in providers
-        if p.get("state", "").lower() == "lagos"
-    ]
-    return lagos_providers[:n] if lagos_providers else providers[:n]
+    """Back-compat module-level wrapper around the default ProviderDirectory."""
+    return _default_directory.nearest(
+        caller_state=caller_state, caller_lat=caller_lat, caller_lon=caller_lon, n=n
+    )
 
 
 def build_provider_sms(
