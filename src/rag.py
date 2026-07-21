@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from prompt import get_fallback_response, get_emergency_fallback
 
-CHROMA_DB_PATH = "/data/knowledge_base"
+CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "/data/knowledge_base")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 COLLECTION_NAME = "wema_maternal_health"
 
@@ -138,7 +138,7 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         result = None
         for attempt in range(2):
             try:
-                llm   = ChatGroq(model="qwen/qwen3-32b", temperature=0.2, max_tokens=600)
+                llm   = ChatGroq(model="qwen/qwen3.6-27b", temperature=0.2, max_tokens=600)
                 chain = wema_prompt | llm
                 result = chain.invoke({"context": context, "query": query_for_model})
                 break

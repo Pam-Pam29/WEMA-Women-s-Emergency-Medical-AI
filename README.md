@@ -58,7 +58,7 @@ All guidance is **physical-only**: WEMA never names drugs, prescriptions, or cli
 WEMA rests on two labelled data assets:
 
 1. **Clinical knowledge base** — 19 source documents → **~10,025 chunks**. Retrieval is grounded in these passages so the model never answers from memory alone.
-2. **Evaluation scenarios** — **68 labelled test cases across 17 emergency types**. Each has a caller script, the expected home action, a risk level, and an alerting decision. **Clinician-reviewed** (formal signed clinical validation in progress).
+2. **Evaluation scenarios** — **68 labelled test cases across 17 emergency types**. Each has a caller script, the expected home action, a risk level, and an alerting decision. **Clinician-reviewed** — Dr. Kolade confirmed the review and validation in writing (WhatsApp), with formal clinical sign-off in progress.
 
 **Preprocessing pipeline:** PDF text extraction → cleaning (referral forms, citations, headers removed) → fixed-size chunking with overlap → MiniLM embeddings → ChromaDB index.
 
@@ -154,7 +154,7 @@ Each was fixed, redeployed, and re-verified with real API calls. Equivalence mov
 **Honest limitations:**
 - Temperature=0.2 shows genuine run-to-run variability — different scenarios failed on different full runs even with an unchanged prompt.
 - LLM-as-judge is a **proxy, not ground truth**; correctness ultimately rests on the clinician-reviewed labelled scenarios and the physical-only constraint.
-- Language coverage is English and Nigerian Pidgin only; formal signed clinical validation is in progress.
+- Language coverage is English and Nigerian Pidgin only; Dr. Kolade confirmed the review and validation in writing (WhatsApp), with formal clinical sign-off still in progress.
 - The secondary-PPH safety-net regex in `rag.py` (`_secondary_pph_risk`) only matches digit forms of elapsed time ("2 weeks ago"), not spelled-out numbers ("two weeks ago") — a caller phrasing it the second way would not get the extra safety-note injection. Caught by `tests/test_rag_safety_net.py`, not yet fixed.
 
 ---

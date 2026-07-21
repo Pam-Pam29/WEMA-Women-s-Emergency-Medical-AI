@@ -4,12 +4,17 @@ src/sms.py
 
 Triggered when WEMA's response contains an alert phrase (see SMS_TRIGGER_PHRASES).
 Finds the 3 nearest healthcare providers to the caller's location.
-Sends SMS alert to the 1 nearest provider AND sends facility details for all 3 back to caller.
+Sends an SMS alert to all providers found (fan-out, up to 3) AND sends facility
+details for all of them back to the caller.
 
 Exports used by app.py:
   - alert_nearest_providers()
   - extract_state()
   - should_trigger_sms()
+
+Closed-loop provider accept/reject (see CASES below): each alerted case is tracked
+in-memory keyed by call_sid so the Stage 3 /sms/incoming handler can look it up when
+a provider replies ACCEPT/DECLINE and reach the caller with Message B.
 """
 
 import os
@@ -64,6 +69,12 @@ def _send_sms(to: str, body: str) -> bool:
                 _log_failed_sms(to, body, str(e))
     return False
 
+
+# ── Case state (shared in-memory, keyed by call_sid) ──────────────────────────
+# Populated by alert_nearest_providers() below. Consumed by the Stage 3
+# /sms/incoming ACCEPT/DECLINE handler in app.py. Simple process-local dict —
+# fine for a single local dev server, not durable across restarts.
+CASES: dict[str, dict] = {}
 
 # ── Provider database ─────────────────────────────────────────────────────────
 PROVIDERS_CSV = os.path.join(
@@ -231,14 +242,14 @@ def build_provider_sms(
     call_sid: str,
     caller_state: str = None,
 ) -> str:
-    """Builds the SMS alert text sent to each provider."""
+    """Builds the SMS alert text sent to each alerted provider."""
     location = caller_state if caller_state else "Location unknown"
     return (
         f"[WEMA ALERT] {emergency_type.upper()}\n"
+        f"Case: {call_sid}\n"
         f"Caller: {caller_number}\n"
         f"Location: {location}\n"
-        f"Call ID: {call_sid}\n"
-        f"Please respond immediately."
+        f"Reply ACCEPT or DECLINE."
     )
 
 
@@ -264,10 +275,12 @@ def alert_nearest_providers(
 ) -> dict:
     """
     Main function called by app.py in a background thread.
-    1. Finds 3 nearest providers
-    2. Sends SMS alert to the nearest provider only
-    3. Sends facility details for all 3 back to caller
-    Retries once on failure.
+    1. Finds up to 3 nearest providers
+    2. Sends an SMS alert (with case reference + ACCEPT/DECLINE prompt) to EACH one
+    3. Sends facility details for all of them back to caller
+    4. Registers the case in CASES so Stage 3's ACCEPT/DECLINE handler can find it
+    Retries once per SMS on failure; a failed send is logged and skipped, it never
+    aborts the rest of the fan-out or the call.
     """
     result = {
         "providers_alerted": [],
@@ -293,23 +306,38 @@ def alert_nearest_providers(
     )
     caller_message = build_caller_sms(providers, caller_state)
 
-    # ── Send alert to the nearest provider only ───────────────────
-    nearest_provider = providers[0]
-    phone = nearest_provider.get("phone", "").strip()
-    if not phone:
-        result["failed_count"] += 1
-        result["errors"].append(f"No phone for {nearest_provider['name']}")
-    else:
-        sent = _send_sms(phone, provider_message)
-        if sent:
-            result["providers_alerted"].append(nearest_provider["name"])
-            result["success_count"] += 1
-            dist = nearest_provider.get("distance_km")
-            dist_str = f"{dist:.1f}km" if isinstance(dist, float) else "state match"
-            print(f"[WEMA SMS ✓] {nearest_provider['name']} ({phone}) — {dist_str}")
-        else:
+    # ── Register the case before dispatching, so a lightning-fast reply can't
+    #    race the write. Stage 3 fills in "status" transitions on top of this. ──
+    CASES[call_sid] = {
+        "caller_number": caller_number,
+        "providers_alerted": [],   # phone numbers, filled in as sends succeed below
+        "status": "OPEN",
+    }
+
+    # ── Send alert to every provider found (fan-out, up to 3) ─────
+    for provider in providers:
+        try:
+            phone = provider.get("phone", "").strip()
+            if not phone:
+                result["failed_count"] += 1
+                result["errors"].append(f"No phone for {provider.get('name', '?')}")
+                continue
+            sent = _send_sms(phone, provider_message)
+            if sent:
+                result["providers_alerted"].append(provider["name"])
+                result["success_count"] += 1
+                CASES[call_sid]["providers_alerted"].append(phone)
+                dist = provider.get("distance_km")
+                dist_str = f"{dist:.1f}km" if isinstance(dist, float) else "state match"
+                print(f"[WEMA SMS ✓] {provider['name']} ({phone}) — {dist_str}")
+            else:
+                result["failed_count"] += 1
+                result["errors"].append(f"{provider.get('name', '?')}: SMS failed after retry")
+        except Exception as e:
+            # A single malformed/failed provider must not stop the rest of the fan-out.
             result["failed_count"] += 1
-            result["errors"].append(f"{nearest_provider['name']}: SMS failed after retry")
+            result["errors"].append(f"{provider.get('name', '?')}: {e}")
+            print(f"[WEMA SMS ✗] Unexpected error alerting {provider.get('name', '?')}: {e}")
 
     # ── Send facility locations back to caller ────────────────────
     sent = _send_sms(caller_number, caller_message)
