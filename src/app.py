@@ -322,6 +322,12 @@ def incoming_call():
 
     response = VoiceResponse()
 
+    # Start full-call recording (both legs) first, before any other verb.
+    # twilio==9.2.0 has no dedicated Start.recording() helper (only
+    # .stream()/.siprec() are modeled), so this uses the SDK's generic
+    # add_child() to emit <Start><Recording/></Start>.
+    response.start().add_child("Recording")
+
     # Play greeting instantly
     play_text(response, get_greeting(), audio_url=GREETING_AUDIO_URL)
 
