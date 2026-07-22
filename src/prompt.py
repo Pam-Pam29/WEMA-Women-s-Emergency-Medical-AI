@@ -3,12 +3,20 @@ WEMA — Women's Emergency Medical AI
 src/prompt.py
 """
 
+import re
+
 _EMERGENCY_FALLBACKS = {
     "bleeding": (
         "Stay calm, I am here with you. "
         "Massage your lower belly firmly in circles until it feels hard. "
         "Then put your baby to your breast — this helps slow the bleeding. "
         "Lie flat and keep warm. "
+        "Help is being alerted. Get to a hospital now."
+    ),
+    "bleeding_pregnant": (
+        "Stay calm, I am here with you. "
+        "Lie down right now and do not press on your belly. "
+        "Keep warm and stay as still as you can. "
         "Help is being alerted. Get to a hospital now."
     ),
     "fits": (
@@ -78,15 +86,36 @@ def get_conversational_response(intent: str) -> str:
     return responses.get(intent, responses["ok"])
 
 
+# Pidgin "no fit" / "no dey fit" means "cannot" — it must NOT route to the
+# seizure response. Strip it before checking for "fit" as a seizure word,
+# and require a word boundary so "profit"/"outfit"/"benefit" never match.
+_PIDGIN_CANNOT = re.compile(r"\bno\s+(dey\s+)?fit\b")
+_FIT_SEIZURE = re.compile(r"\bfit(s|ting)?\b")
+
+# Belly massage is correct for bleeding AFTER BIRTH only. For bleeding in
+# pregnancy (placenta praevia etc.) pressing the belly is dangerous, so the
+# massage response is gated on an explicit birth mention. Includes Pidgin
+# "I born" (= I gave birth).
+_BIRTH_MENTION = re.compile(r"\bbirth\b|\bborn\b|\bdeliver(ed|y)?\b", re.IGNORECASE)
+
+
+def _mentions_seizure_fit(text: str) -> bool:
+    cleaned = _PIDGIN_CANNOT.sub(" ", text)
+    return bool(_FIT_SEIZURE.search(cleaned))
+
+
 def get_emergency_fallback(caller_text: str) -> str:
     text = caller_text.lower()
     if any(w in text for w in ["bleed", "blood", "haemorrhage", "hemorrhage"]):
-        return _EMERGENCY_FALLBACKS["bleeding"]
-    if any(w in text for w in ["fit", "convuls", "shake", "seizure", "shaking"]):
+        if _BIRTH_MENTION.search(text):
+            return _EMERGENCY_FALLBACKS["bleeding"]
+        return _EMERGENCY_FALLBACKS["bleeding_pregnant"]
+    if _mentions_seizure_fit(text) or any(w in text for w in ["convuls", "shake", "seizure", "shaking"]):
         return _EMERGENCY_FALLBACKS["fits"]
     if any(w in text for w in ["cord", "rope", "string", "umbilical"]):
         return _EMERGENCY_FALLBACKS["cord"]
-    if any(w in text for w in ["not breathing", "no breath", "baby not", "not cry", "not crying"]):
+    if any(w in text for w in ["not breathing", "no breath", "baby not", "not cry", "not crying",
+                               "no dey breathe", "no cry", "pikin no"]):
         return _EMERGENCY_FALLBACKS["not_breathing"]
     if any(w in text for w in ["one side", "sharp pain", "ectopic", "collapse", "collapsed"]):
         return _EMERGENCY_FALLBACKS["ectopic"]

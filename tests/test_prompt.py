@@ -14,10 +14,19 @@ from prompt import get_emergency_fallback, get_stt_retry_prompt, get_fallback_re
     ("She is having seizures she is pregnant", "left side"),
     ("Baby is not breathing after delivery", "dry"),
     ("I need help with my pregnancy", "left side"),
+    # Bleeding with NO birth mention -> pregnancy-bleeding response, never massage
+    ("I am 6 months pregnant and I am bleeding", "do not press"),
+    # Pidgin "no fit" (= cannot) must not trigger the seizure response
+    ("I no fit stand up, my belly dey pain me", "left side"),
 ])
 def test_get_emergency_fallback_keyword_routing(query, expected_keyword):
     response = get_emergency_fallback(query).lower()
     assert expected_keyword in response
+
+
+def test_get_emergency_fallback_pregnancy_bleeding_never_says_massage():
+    response = get_emergency_fallback("I am pregnant and bleeding heavily").lower()
+    assert "massage" not in response
 
 
 def test_get_emergency_fallback_never_names_a_medication():

@@ -124,7 +124,28 @@ def _secondary_pph_risk(question: str) -> bool:
     return bool(_DAYS_WEEKS_AGO.search(question) and _BLEEDING_WORDS.search(question) and _BIRTH_WORDS.search(question))
 
 
+_PIDGIN_MARKERS = re.compile(
+    r"\b(dey|wetin|abeg|wahala|abi|no be|no fit|well well|waka|comot|una|pikin|sabi|na so)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_pidgin(question: str) -> bool:
+    """Detects Nigerian Pidgin English via a small set of distinctive markers.
+    Generation quality in Pidgin is unreliable (tested: thin, inconsistent
+    output, mostly English with a token Pidgin word) -- rather than risk an
+    unclear step-by-step response, Pidgin callers are routed through the
+    keyword-matched emergency responses (get_emergency_fallback()), skipping
+    generation entirely. Pidgin medical vocabulary is largely English
+    ('bleed', 'born'), so the keyword routing still picks the right
+    emergency type for most cases."""
+    return bool(_PIDGIN_MARKERS.search(question))
+
+
 def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
+    if _is_pidgin(question):
+        return get_emergency_fallback(question), []
+
     try:
         context, sources = retrieve_context(vectorstore, question, k=4)
 
