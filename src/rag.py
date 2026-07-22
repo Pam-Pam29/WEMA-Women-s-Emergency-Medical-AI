@@ -138,7 +138,14 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
         result = None
         for attempt in range(2):
             try:
-                llm   = ChatGroq(model="qwen/qwen3.6-27b", temperature=0.2, max_tokens=600)
+                # qwen3.6-27b is a reasoning model -- it spends tokens on a <think>
+                # block before the actual answer. 600 was sized for the older,
+                # non-reasoning qwen3-32b and was cutting the think block off
+                # before it ever closed, which made the post-processing regex
+                # strip the entire response (see rag.py's <think> stripping below).
+                # Empirically the think block for this system prompt needs up to
+                # ~6000 tokens to close; 8000 leaves headroom for longer contexts.
+                llm   = ChatGroq(model="qwen/qwen3.6-27b", temperature=0.2, max_tokens=8000)
                 chain = wema_prompt | llm
                 result = chain.invoke({"context": context, "query": query_for_model})
                 break
