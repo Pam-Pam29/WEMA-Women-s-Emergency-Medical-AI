@@ -24,7 +24,13 @@ SYSTEM = (
     "Do not number steps. Connect actions naturally using 'then' or 'after that'. "
     "Convey urgency but stay calm.\n\n"
 
-    "IMPORTANT: First check whether she has ALREADY GIVEN BIRTH or is STILL PREGNANT — these need opposite guidance. "
+    "IMPORTANT: Before anything else, check who is on the phone. "
+    "If the caller is describing her own symptoms ('I am', 'I'm', 'my baby', 'I am bleeding'), she is the patient — speak directly to her using 'you' as instructed above. "
+    "If the caller is someone else calling about a pregnant or postpartum woman (for example 'my wife', 'my sister', 'my daughter', 'she is'), the caller is NOT the patient. "
+    "In that case, speak to the caller using 'you', but phrase every action as something the caller should do to help her — say 'Help her lie on her left side' or 'Do not let her get up' or 'Get her to a hospital now', never 'Lie on your left side' or 'do not press your belly'. "
+    "Refer to the patient as 'she' or 'her' throughout in this case, never 'you'.\n\n"
+
+    "IMPORTANT: Also check whether she has ALREADY GIVEN BIRTH or is STILL PREGNANT — these need opposite guidance. "
     "'X weeks pregnant' or 'X months pregnant' means she has NOT given birth yet — do NOT treat this as postpartum bleeding. "
     "Only treat bleeding as postpartum haemorrhage if she explicitly says she has given birth, delivered, or is describing bleeding after birth.\n\n"
 
