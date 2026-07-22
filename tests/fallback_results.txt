@@ -1,0 +1,31 @@
+======================================================================
+CASE A -- Generation outage (Groq call raises on every retry attempt)
+======================================================================
+[GROQ RETRY] Attempt 1 failed: Simulated Groq API outage -- generation backend unreachable
+[GROQ RETRY] Attempt 2 failed: Simulated Groq API outage -- generation backend unreachable
+[WEMA RAG ERROR] Simulated Groq API outage -- generation backend unreachable — using keyword emergency fallback
+SCENARIO: Generation outage (Groq unreachable)
+SAFE RESPONSE: 'Stay calm, I am here with you. Massage your lower belly firmly in circles until it feels hard. Then put your baby to your breast — this helps slow the bleeding. Lie flat and keep warm. Help is being alerted. Get to a hospital now.'
+SOURCES: []
+RESULT: PASS  (non_empty=True, no_medication_named=True)
+----------------------------------------------------------------------
+======================================================================
+CASE B -- Empty retrieval (vector store returns no results)
+======================================================================
+SCENARIO: Empty retrieval (no knowledge-base matches)
+SAFE RESPONSE: 'I want to help you. Please go to your nearest hospital immediately — do not wait. If you are bleeding, press on your lower belly and keep warm. Help is being alerted to you now.'
+SOURCES: []
+RESULT: PASS  (non_empty=True, no_medication_named=True)
+----------------------------------------------------------------------
+======================================================================
+CASE C -- Truncated output (model returns a sub-20-character fragment)
+======================================================================
+SCENARIO: Truncated model output
+SAFE RESPONSE: 'Stay calm, I am here with you. Massage your lower belly firmly in circles until it feels hard. Then put your baby to your breast — this helps slow the bleeding. Lie flat and keep warm. Help is being alerted. Get to a hospital now.'
+SOURCES: []
+RESULT: PASS  (non_empty=True, no_medication_named=True)
+----------------------------------------------------------------------
+======================================================================
+SUMMARY: 3/3 cases PASS
+======================================================================
+EXIT_CODE=0
