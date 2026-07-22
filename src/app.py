@@ -16,6 +16,7 @@ import re
 import requests
 from flask import Flask, request, Response, send_file
 from twilio.twiml.voice_response import VoiceResponse
+from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
@@ -26,7 +27,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from prompt import get_greeting, get_stt_retry_prompt, get_fallback_response, is_conversational, get_conversational_response
-from sms import alert_nearest_providers, extract_state, should_trigger_sms
+from sms import alert_nearest_providers, extract_state, should_trigger_sms, handle_provider_reply
 from rag import ask_wema, load_vectorstore
 from session_store import SessionStore
 
@@ -441,6 +442,26 @@ def respond():
 @app.route("/voice/recording-status", methods=["POST"])
 def recording_status():
     return Response("", status=204)
+
+
+# ── Closed-loop provider alerts ────────────────────────────────────────────
+# Twilio Messaging webhook target: POST https://<domain>/sms/incoming
+# A provider who received an alert SMS (sms.alert_nearest_providers) replies
+# ACCEPT or DECLINE here; sms.handle_provider_reply() looks up the open case
+# by the provider's phone number, allocates or frees it, and notifies the
+# caller + the other alerted providers.
+@app.route("/sms/incoming", methods=["POST"])
+def sms_incoming():
+    from_number = request.form.get("From", "").strip()
+    body        = request.form.get("Body", "").strip()
+    print(f"[SMS IN] From: {from_number} | Body: {body!r}")
+
+    reply = handle_provider_reply(from_number, body)
+
+    response = MessagingResponse()
+    if reply:
+        response.message(reply)
+    return Response(str(response), mimetype="text/xml")
 
 
 @app.route("/health", methods=["GET"])

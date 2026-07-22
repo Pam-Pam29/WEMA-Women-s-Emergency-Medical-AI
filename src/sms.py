@@ -307,11 +307,14 @@ def alert_nearest_providers(
     caller_message = build_caller_sms(providers, caller_state)
 
     # ── Register the case before dispatching, so a lightning-fast reply can't
-    #    race the write. Stage 3 fills in "status" transitions on top of this. ──
+    #    race the write. handle_provider_reply() fills in "status" transitions
+    #    on top of this. ──
     CASES[call_sid] = {
         "caller_number": caller_number,
-        "providers_alerted": [],   # phone numbers, filled in as sends succeed below
-        "status": "OPEN",
+        "providers_alerted": [],   # {"phone", "name", "address"} dicts, filled in as sends succeed below
+        "declined": [],            # phone numbers that replied DECLINE
+        "status": "OPEN",          # OPEN -> CLOSED once a provider ACCEPTs
+        "accepted_by": None,
     }
 
     # ── Send alert to every provider found (fan-out, up to 3) ─────
@@ -326,7 +329,11 @@ def alert_nearest_providers(
             if sent:
                 result["providers_alerted"].append(provider["name"])
                 result["success_count"] += 1
-                CASES[call_sid]["providers_alerted"].append(phone)
+                CASES[call_sid]["providers_alerted"].append({
+                    "phone": phone,
+                    "name": provider["name"],
+                    "address": provider.get("address", ""),
+                })
                 dist = provider.get("distance_km")
                 dist_str = f"{dist:.1f}km" if isinstance(dist, float) else "state match"
                 print(f"[WEMA SMS ✓] {provider['name']} ({phone}) — {dist_str}")
@@ -347,6 +354,73 @@ def alert_nearest_providers(
         result["errors"].append("Caller SMS failed after retry")
 
     return result
+
+
+def _find_open_case_for_provider(from_number: str):
+    """Returns (call_sid, case, provider_entry) for the OPEN case where
+    from_number is one of the alerted providers, or (None, None, None)."""
+    for call_sid, case in CASES.items():
+        if case["status"] != "OPEN":
+            continue
+        for provider_entry in case["providers_alerted"]:
+            if provider_entry["phone"] == from_number:
+                return call_sid, case, provider_entry
+    return None, None, None
+
+
+def handle_provider_reply(from_number: str, body: str) -> str | None:
+    """
+    Closed-loop ACCEPT/DECLINE handler for the /sms/incoming webhook.
+
+    Looks up the OPEN case (see alert_nearest_providers) where from_number
+    is one of the alerted providers:
+      - ACCEPT: allocates the case to that provider, notifies the caller
+        with the facility name and address, and tells the other alerted
+        providers the case has been taken.
+      - DECLINE: records the decline; the case stays OPEN for the
+        remaining providers.
+      - Anything else, or no matching open case: no-op, returns None.
+
+    Returns the text to reply to the provider with (or None to send an
+    empty TwiML response).
+    """
+    from_number = (from_number or "").strip()
+    reply = (body or "").strip().upper()
+
+    call_sid, case, provider_entry = _find_open_case_for_provider(from_number)
+    if not case:
+        print(f"[WEMA SMS] No open case found for {from_number} — ignoring reply {reply!r}")
+        return None
+
+    if reply.startswith("ACCEPT"):
+        case["status"] = "CLOSED"
+        case["accepted_by"] = provider_entry
+
+        caller_message = (
+            f"[WEMA] {provider_entry['name']} has accepted your case and is expecting you.\n"
+            f"Address: {provider_entry['address']}\n"
+            f"Get there now."
+        )
+        _send_sms(case["caller_number"], caller_message)
+
+        for other in case["providers_alerted"]:
+            if other["phone"] != from_number:
+                _send_sms(
+                    other["phone"],
+                    f"[WEMA] Case {call_sid} has been taken by another facility. Thank you for responding."
+                )
+
+        print(f"[WEMA SMS ✓] Case {call_sid} accepted by {provider_entry['name']} ({from_number})")
+        return "Thank you — this case is now allocated to you. The caller has been notified you are expecting them."
+
+    if reply.startswith("DECLINE"):
+        if from_number not in case["declined"]:
+            case["declined"].append(from_number)
+        print(f"[WEMA SMS] Case {call_sid} declined by {provider_entry['name']} ({from_number})")
+        return "Thank you for letting us know."
+
+    print(f"[WEMA SMS] Unrecognised reply from {from_number} for case {call_sid}: {reply!r}")
+    return None
 
 
 if __name__ == "__main__":
