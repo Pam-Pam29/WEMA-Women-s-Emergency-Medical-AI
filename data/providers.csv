@@ -1,2 +1,4 @@
 name,address,state,lga,facility_type,latitude,longitude,phone,phone_verified
 General Hospital Alimosho,"Off Lasu Isheri Expressway, General Bus Stop, Igando",Lagos,Alimosho,General Hospital,6.5617,3.2514,+250793165413,Yes
+General Hospital Ikorodu,"TOS Benson Road, Ikorodu",Lagos,Ikorodu,General Hospital,6.6194,3.5106,+250793165413,Yes
+General Hospital Gbagada,"1 Hospital Road, Gbagada, Kosofe LGA",Lagos,Kosofe,General Hospital,6.5667,3.3833,+250793165413,Yes
