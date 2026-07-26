@@ -154,6 +154,6 @@ def get_stt_retry_prompt() -> str:
 def get_greeting() -> str:
     return (
         "Hello, this is WEMA. "
-        "I am here to help you. "
-        "Please tell me what is happening."
+        "I am not a doctor, and this call is recorded. "
+        "I am here to help you — please tell me what is happening."
     )
