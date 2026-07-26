@@ -14,7 +14,7 @@ import sys
 import threading
 import re
 import requests
-from flask import Flask, request, Response, send_file
+from flask import Flask, request, Response, send_file, render_template, redirect
 from twilio.twiml.voice_response import VoiceResponse
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
@@ -468,6 +468,19 @@ def sms_incoming():
     if reply:
         response.message(reply)
     return Response(str(response), mimetype="text/xml")
+
+
+# ── Public legal pages ─────────────────────────────────────────────────────
+# Static privacy/terms page for the hotline. No auth, no session — purely
+# additive, does not touch the voice webhook, RAG pipeline, or SMS handling.
+@app.route("/privacy", methods=["GET"])
+def privacy():
+    return render_template("legal.html")
+
+
+@app.route("/terms", methods=["GET"])
+def terms():
+    return redirect("/privacy")
 
 
 @app.route("/health", methods=["GET"])
