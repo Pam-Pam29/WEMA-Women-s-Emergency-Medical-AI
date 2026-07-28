@@ -1,0 +1,694 @@
+{
+  "eval_results": [
+    {
+      "id": "S001",
+      "type": "Postpartum Haemorrhage",
+      "query": "I just gave birth one hour ago and I cannot stop bleeding. The blood is soaking through everything. My husband is not home.",
+      "wema_response": "You are doing the right thing by calling. Please shout for a neighbour or call someone nearby to come help you right away. Massage your lower belly firmly in circles until it feels hard, then put your baby to your breast to help slow the bleeding. After that, empty your bladder, lie flat with your legs raised if you can, and keep warm without getting up. Help is being alerted. Get to a health facility now.",
+      "latency": 7.77,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response accurately covers the main physical interventions, including massaging the lower belly, putting the baby to breast, emptying the bladder, and keeping warm, without omitting any major actions."
+    },
+    {
+      "id": "S002",
+      "type": "Postpartum Haemorrhage",
+      "query": "I gave birth yesterday and now I am passing large blood clots. I feel dizzy and my vision is blurring.",
+      "wema_response": "I know this is frightening, but we need to act quickly. Massage your lower belly firmly in circles until it feels hard, then put your baby to your breast to help your womb contract. Empty your bladder, then lie flat with your legs raised and keep yourself warm. Do not get up. Help is being alerted. Get to a health facility now.",
+      "latency": 6.62,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly, including lying flat, elevating legs, and seeking immediate help."
+    },
+    {
+      "id": "S003",
+      "type": "Postpartum Haemorrhage",
+      "query": "I don born 2 hours ago. Blood dey pour like water. I dey shake.",
+      "wema_response": "Stay calm, I am here with you. Massage your lower belly firmly in circles until it feels hard. Then put your baby to your breast \u2014 this helps slow the bleeding. Lie flat and keep warm. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical interventions of massaging the lower belly, putting the baby to breast, and keeping warm, while also alerting help and advising to get to a hospital."
+    },
+    {
+      "id": "S004",
+      "type": "Postpartum Haemorrhage",
+      "query": "I gave birth 3 days ago. I am still bleeding but it is not as heavy. Is this normal?",
+      "wema_response": "Please lie flat right now and keep yourself warm with a blanket. Then watch how much you are bleeding, since soaking more than one pad in an hour means it is getting worse. Do not massage your belly, as that can keep the bleeding going. Help is being alerted. Get to a health facility now.",
+      "latency": 7.2,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical intervention of monitoring bleeding and advises seeking help at a health facility, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S005",
+      "type": "Postpartum Haemorrhage",
+      "query": "I am in labour and I am bleeding very heavily. The baby has not come yet. I cannot reach the hospital.",
+      "wema_response": "Stay calm, you are doing the right thing. Lie down flat right now and keep your legs slightly raised. Then do not press on your belly or try to stand up. After that, shout loudly for a neighbour or call someone to come to you immediately since you are alone. Help is being alerted. Get to a health facility now.",
+      "latency": 9.02,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omits the crucial instruction to not push, which is a major physical intervention in the expected action."
+    },
+    {
+      "id": "S006",
+      "type": "Postpartum Haemorrhage",
+      "query": "I just gave birth at home. The placenta has not come out after 1 hour. I am bleeding.",
+      "wema_response": "Please stay calm and lie down right where you are. Do not massage your belly or pull on the cord, as this can make the bleeding worse. After that, try to empty your bladder by urinating if you can. Then keep lying still and stay warm while you wait for transport. Help is being alerted. Get to a health facility now.",
+      "latency": 7.51,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical interventions of not pulling the cord, emptying the bladder, and lying still while waiting for transport."
+    },
+    {
+      "id": "S007",
+      "type": "Postpartum Haemorrhage",
+      "query": "I gave birth one week ago and I have started bleeding heavily again. I thought I was done bleeding.",
+      "wema_response": "You are bleeding heavily after birth, so please stay calm and listen carefully. Lie flat on your back right now and cover yourself with a blanket to stay warm. Do not massage your belly. After that, keep track of your bleeding on the way, since soaking more than one pad in an hour means it is getting worse. Help is being alerted. Get to a health facility now.",
+      "latency": 7.06,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie flat, avoid exertion, and seek immediate medical attention, aligning with the expected physical intervention for secondary bleeding after one week."
+    },
+    {
+      "id": "S008",
+      "type": "Postpartum Haemorrhage",
+      "query": "I just gave birth and the bleeding will not stop. My mother is trying to press my stomach but it is not helping. I feel very weak.",
+      "wema_response": "Please massage your lower belly firmly in circles until it feels hard, then put your baby to your breast right away to help your womb contract. After that, try to empty your bladder and lie flat with your legs slightly raised while you stay warm and do not get up. Your mother should help you stay still and keep you comfortable while you wait. Help is being alerted. Get to a health facility now.",
+      "latency": 7.14,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response accurately covers the main physical interventions, including massaging the lower belly, putting the baby to breast, emptying the bladder, and lying flat, without omitting any major actions."
+    },
+    {
+      "id": "S009",
+      "type": "Postpartum Haemorrhage",
+      "query": "I gave birth two hours ago by myself at home. I have a deep cut down below that will not stop bleeding.",
+      "wema_response": "Please stay calm and take the cleanest cloth you can find. Press it firmly against the cut, then leave it there and add more cloth on top if it soaks through. Do not massage your belly. Since you are alone, shout for a neighbour or call someone to come to you immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 11.3,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to apply firm pressure with a clean cloth and seek immediate help, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S010",
+      "type": "Eclampsia",
+      "query": "I am 9 months pregnant and I just had a seizure. I am confused and my head is pounding. My face and hands are swollen.",
+      "wema_response": "Please lie down on your left side right now and rest quietly. Then protect your head and keep your mouth clear if you feel another fit coming. Do not let anyone restrain you or put anything in your mouth. After that, stay exactly where you are and do not leave alone. Help is being alerted. Get to a health facility now.",
+      "latency": 6.89,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side, protect her head, and keep her mouth clear, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S011",
+      "type": "Pre-eclampsia",
+      "query": "I have had a terrible headache for 2 days and my feet are very swollen. I can see flashing lights. I am 8 months pregnant.",
+      "wema_response": "I hear you, and I want to keep you and your baby safe. Lie on your left side right now and rest quietly. Ask someone to stay with you so you are not alone. Then get to a health facility immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 6.67,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie on her left side, rest, and get to a health facility immediately, covering the main physical intervention safely and correctly."
+    },
+    {
+      "id": "S012",
+      "type": "Eclampsia",
+      "query": "I gave birth yesterday and I just had a fit. I am very confused and my head hurts badly.",
+      "wema_response": "Lie on your left side right now and protect yourself from injury. Do not restrain yourself and do not put anything in your mouth. Then call a neighbour or family member to come to you immediately so you are not alone. Stay calm and breathe slowly. Help is being alerted. Get to a health facility now.",
+      "latency": 9.01,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical intervention by instructing the woman to lie on her left side, protect herself from injury, and not put anything in her mouth, while also ensuring she is not alone and gets to a health facility."
+    },
+    {
+      "id": "S013",
+      "type": "Pre-eclampsia",
+      "query": "I am 7 months pregnant and my legs and face have been swelling for a week. I feel okay but the swelling worries me.",
+      "wema_response": "Please lie down on your left side right now and rest quietly. After that, keep yourself warm and avoid any heavy activity. Facial and leg swelling at seven months needs urgent checking to keep you and your baby safe. Help is being alerted. Get to a health facility now.",
+      "latency": 4.93,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly advises the woman to lie down and rest, avoid heavy activity, and visit a health facility, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S014",
+      "type": "Eclampsia",
+      "query": "I dey labour and I just shake for ground. My mama dey cry. Blood pressure high dem tell me last week.",
+      "wema_response": "Stay calm. Lie on your left side right now. Do not put anything in your mouth. Someone should stay with you. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical interventions of having the woman lie on her left side and not putting anything in her mouth, while also alerting help and advising her to get to a hospital."
+    },
+    {
+      "id": "S015",
+      "type": "Pre-eclampsia",
+      "query": "I am 9 months pregnant. My blood pressure was very high at my last visit. Now I have pain under my ribs on the right side.",
+      "wema_response": "Please lie on your left side right now and rest quietly. Keep yourself warm and do not get up. After that, make sure someone stays with you and calls for transport immediately. This is a life-threatening situation that needs urgent hospital care. Help is being alerted. Get to a health facility now.",
+      "latency": 7.69,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie on her left side and call for transport immediately, aligning with the expected physical intervention for a life-threatening situation like HELLP syndrome."
+    },
+    {
+      "id": "S016",
+      "type": "Pre-eclampsia",
+      "query": "I am 8 months pregnant and I have had a headache since morning. I took paracetamol but it did not help. My feet are a bit swollen.",
+      "wema_response": "You are describing signs that need urgent attention. Please lie down on your left side right now and rest quietly. After that, stay lying down and keep yourself comfortable. Help is being alerted. Get to a health facility now.",
+      "latency": 6.39,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side and get to a health facility, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S017",
+      "type": "Pre-eclampsia",
+      "query": "I am pregnant and my face is swollen. I have not urinated much today. I have a bad headache and I vomited this morning.",
+      "wema_response": "I hear you, and I want to keep you safe. Lie on your left side right now and rest quietly. Then have someone stay with you and arrange transport immediately. Do not get up or try to manage this alone. Help is being alerted. Get to a health facility now.",
+      "latency": 6.06,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie on her left side and arrange for immediate transport to a health facility, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S018",
+      "type": "Eclampsia",
+      "query": "My sister is pregnant and she just fell down and started shaking. She is not waking up properly. She is 9 months.",
+      "wema_response": "Lay her on her left side right away and tilt her head back gently to keep her airway clear. Protect her from hitting anything and do not restrain her or put anything in her mouth. Stay with her and watch her breathing closely. Then call for an ambulance or arrange the fastest transport to the nearest hospital. Help is being alerted. Get to a health facility now.",
+      "latency": 6.61,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly and safely covers the main physical intervention by instructing to lay the woman on her left side and ensuring her safety until medical help arrives."
+    },
+    {
+      "id": "S019",
+      "type": "Maternal Sepsis",
+      "query": "I gave birth 3 days ago and I have a very high fever. My stomach is swollen and very painful. There is a bad smell from down below.",
+      "wema_response": "Please lie down on your left side right now and keep yourself warm. After that, take small sips of water and do not touch or press on your stomach or any wounds. This is a serious infection that needs urgent medical attention. Help is being alerted. Get to a health facility now.",
+      "latency": 6.83,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including advising the woman to keep warm, drink water, and seek immediate medical attention at a health facility."
+    },
+    {
+      "id": "S020",
+      "type": "Maternal Sepsis",
+      "query": "I had a caesarean section one week ago. My wound has opened and it is green and smelling. I have a high temperature and I feel very cold and shivering.",
+      "wema_response": "I am here with you. Lie on your left side right now and keep warm. Do not touch any wound you have. Sip some water if you can. Help is being alerted. Get to a hospital now.",
+      "latency": 18.05,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omitted the key physical intervention of covering the wound with a clean cloth, which is a major behavioural action."
+    },
+    {
+      "id": "S021",
+      "type": "Maternal Sepsis",
+      "query": "I am 5 months pregnant and I have had a fever for 3 days with pain when I urinate. My lower back is also very painful.",
+      "wema_response": "You are still pregnant and this fever with back pain needs urgent care. Lie on your left side and keep yourself warm. Sip some plain water and place a clean pad between your legs, but do not insert anything. Then arrange transport to a hospital right away. Help is being alerted. Get to a health facility now.",
+      "latency": 4.99,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly by advising the woman to keep warm, sip plain water, and arrange transport to a hospital right away."
+    },
+    {
+      "id": "S022",
+      "type": "Maternal Sepsis",
+      "query": "I gave birth 5 days ago. I have a fever and my breasts are very painful, red and hard. I am breastfeeding.",
+      "wema_response": "I hear you, and we need to clear this infection quickly. Keep breastfeeding or gently express milk from the affected breast, then place a warm cloth on it before your next feed. After that, rest quietly and sip plain water to stay hydrated. Help is being alerted. Get to a health facility now.",
+      "latency": 5.6,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical intervention of applying a warm cloth to the breast and continuing breastfeeding or expressing milk, while also advising rest and hydration."
+    },
+    {
+      "id": "S023",
+      "type": "Maternal Sepsis",
+      "query": "I am 8 months pregnant. My waters broke yesterday but I have not had any contractions. Now I have a fever and my baby is not moving much.",
+      "wema_response": "Please lie down on your left side right now and keep yourself warm. After that, take small sips of water and place a clean pad underneath you, but do not put anything inside your vagina. Since your waters broke yesterday and your baby is moving less, this is very urgent. Then call a neighbour or family member to drive you to the hospital. Help is being alerted. Get to a health facility now.",
+      "latency": 6.06,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly, including placing a clean pad and advising the woman to go to a facility immediately."
+    },
+    {
+      "id": "S024",
+      "type": "Maternal Sepsis",
+      "query": "I born for house last week. My belle dey pain me well well and I dey hot like fire. I no fit stand up.",
+      "wema_response": "I am here with you. Lie on your left side right now and keep warm. Do not touch any wound you have. Sip some water if you can. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including lying down, keeping warm, sipping water, and seeking immediate hospital care."
+    },
+    {
+      "id": "S025",
+      "type": "Maternal Sepsis",
+      "query": "I had an abortion at a clinic 2 days ago and now I have a very high fever and terrible pain in my stomach. There is a smelly discharge.",
+      "wema_response": "Please lie down on your left side right now and keep yourself warm. Then take only small sips of water and do not press or touch your stomach or any wound. After that, have someone take you to the nearest hospital immediately because this infection is very serious. Help is being alerted. Get to a health facility now.",
+      "latency": 5.78,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including having the woman keep warm, drink water, and go to a facility immediately."
+    },
+    {
+      "id": "S026",
+      "type": "Maternal Sepsis",
+      "query": "I gave birth 2 weeks ago. I have had a low fever for a few days and feel generally unwell. I am tired all the time.",
+      "wema_response": "Please lie down on your left side right now. Keep yourself warm and take small sips of water. If you have any wound, do not touch it. Then call someone to take you to a health facility immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 7.19,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including keeping warm, drinking water, and going to a health facility immediately."
+    },
+    {
+      "id": "S027",
+      "type": "Obstructed Labour",
+      "query": "I have been in labour for more than 2 days. The baby will not come out. I am exhausted and I feel a tearing pain.",
+      "wema_response": "Please lie down on your left side right now. Stop pushing completely and just breathe slowly through each contraction to rest your body. After that, keep yourself warm and do not try to get up. Help is being alerted. Get to a health facility now.",
+      "latency": 6.88,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omits the key physical intervention of changing position to hands and knees or squatting, and also does not explicitly mention calling for transport or the importance of reaching a facility due to prolonged labour."
+    },
+    {
+      "id": "S028",
+      "type": "Obstructed Labour",
+      "query": "The baby's head is showing but it has been stuck like this for over an hour. I am pushing but nothing is happening.",
+      "wema_response": "Please stop pushing right now and lie down on your left side. After that, focus on breathing slowly through each contraction to keep yourself calm. Resting will help protect you and the baby while we arrange transport. Help is being alerted. Get to a health facility now.",
+      "latency": 6.34,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to stop pushing and rest, which aligns with the key expected physical intervention."
+    },
+    {
+      "id": "S029",
+      "type": "Obstructed Labour",
+      "query": "I don dey push since morning and baby no wan come. I dey bleed small and my belle dey pain me for different place now.",
+      "wema_response": "Stay calm, I am here with you. Lie on your left side right now and stop pushing. Breathe slowly through each contraction. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie on her left side and stop pushing, which aligns with the key expected physical intervention for obstructed labour."
+    },
+    {
+      "id": "S030",
+      "type": "Obstructed Labour",
+      "query": "I was in labour and the baby has not come. Suddenly my contractions stopped and I feel something is very wrong. My belly feels different.",
+      "wema_response": "Please lie down on your left side right now. Keep yourself warm and stay completely still. Do not press on your belly or try to stand up. After that, call someone to take you to the nearest hospital without delay. Help is being alerted. Get to a health facility now.",
+      "latency": 6.58,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side, stay still, and seek immediate transportation to a hospital, aligning with the expected physical intervention for a suspected uterine rupture."
+    },
+    {
+      "id": "S031",
+      "type": "Obstructed Labour",
+      "query": "I have been in labour for 18 hours. I am very tired and the contractions are strong but the baby is not moving down.",
+      "wema_response": "Please lie down on your left side right now. Stop pushing and just breathe slowly through each contraction to save your strength. Then have someone call for transport immediately because you need to reach a hospital without delay. Help is being alerted. Get to a health facility now.",
+      "latency": 6.16,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side, stop pushing, and call for transport immediately, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S032",
+      "type": "Obstructed Labour",
+      "query": "I am in labour and I can see the baby's cord hanging out before the baby.",
+      "wema_response": "Please get on your hands and knees right now with your chest down and your hips pushed up. This is a very urgent situation for your baby, so stay in that position and do not lie flat or stand up. Do not try to push the cord back inside. Then call someone nearby to help you get to a facility immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 7.58,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to get on her hands and knees, not to push the cord back inside, and to get to a facility immediately, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S033",
+      "type": "Obstructed Labour",
+      "query": "The baby's head came out but now the shoulders are stuck. The baby is not coming and it has been 5 minutes.",
+      "wema_response": "Please stay calm. Pull your knees up firmly toward your chest. Then press firmly just above your pubic bone. Do not pull on the baby. Help is being alerted. Get to a health facility now.",
+      "latency": 7.36,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical intervention of pulling knees up to chest and pushing firmly just above the pubic bone to help with the stuck baby."
+    },
+    {
+      "id": "S034",
+      "type": "Obstructed Labour",
+      "query": "I am in labour and my contractions started 6 hours ago. The pain is strong but I have not been examined. Should I go to hospital now?",
+      "wema_response": "Yes, you need to go to the hospital right away. Please lie down on your left side and stop pushing for now. After that, breathe slowly through each contraction to keep yourself calm. Then arrange transport to the nearest facility immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 5.38,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side, stop pushing, and go to the hospital immediately, covering the main physical intervention safely and correctly."
+    },
+    {
+      "id": "S035",
+      "type": "Ectopic Pregnancy",
+      "query": "I am about 6 weeks pregnant and I have a terrible pain on one side of my stomach. I feel dizzy and I am bleeding a little.",
+      "wema_response": "Please lie down on your left side right now and stay completely still. Do not get up under any circumstances, and do not press on your belly. After that, call someone to bring you to the hospital immediately by the fastest transport available. Keep resting quietly and try to breathe slowly while you wait. Help is being alerted. Get to a health facility now.",
+      "latency": 6.38,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie still, not press on her abdomen, and call for immediate transport to a hospital."
+    },
+    {
+      "id": "S036",
+      "type": "Ectopic Pregnancy",
+      "query": "I just fainted. I am 7 weeks pregnant and I have severe pain all over my stomach that started suddenly. I am very pale.",
+      "wema_response": "Please lie down on your left side right now and do not get up under any circumstances. Keep your hands off your belly and stay completely still. After that, call someone to arrange the fastest transport to the hospital immediately. Stay calm and breathe slowly while you wait. Help is being alerted. Get to a health facility now.",
+      "latency": 6.45,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and call for immediate transport to the hospital, aligning with the key expected physical intervention for her condition."
+    },
+    {
+      "id": "S037",
+      "type": "Ectopic Pregnancy",
+      "query": "I missed my period last month. I have had shoulder tip pain and sharp cramps on my right side for 2 days. I took a pregnancy test and it was positive.",
+      "wema_response": "Please lie down on your left side right now and stay completely still. Do not get up under any circumstances, and do not press on your belly. After that, get to the nearest hospital by the fastest transport you can find. Help is being alerted. Get to a health facility now.",
+      "latency": 6.67,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and get to the nearest hospital by the fastest transport, which aligns with the expected physical intervention."
+    },
+    {
+      "id": "S038",
+      "type": "Ectopic Pregnancy",
+      "query": "I dey 6 weeks and pain tear my right side. I don faint once. Blood small dey.",
+      "wema_response": "Stay calm, I am here with you. Lie down right now and do not press on your belly. Keep warm and stay as still as you can. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and stay still, which aligns with the key expected physical intervention."
+    },
+    {
+      "id": "S039",
+      "type": "Ectopic Pregnancy",
+      "query": "I am 2 months pregnant. I have been having some mild cramps and spotting. Should I be worried?",
+      "wema_response": "You are doing the right thing by calling. Lie down on your left side and rest quietly right now. Keep an eye on the spotting and do not press on your belly. After that, stay calm and monitor how you feel. Rest at home and monitor. If bleeding gets much heavier or pain becomes severe, go to a health facility immediately.",
+      "latency": 7.91,
+      "verdict": "PARTIAL",
+      "score": 4,
+      "reason": "The AI system's response is mostly correct but fails to instruct the woman to go to a health facility today for assessment, as any bleeding in early pregnancy needs to be evaluated to rule out ectopic pregnancy."
+    },
+    {
+      "id": "S040",
+      "type": "Ectopic Pregnancy",
+      "query": "I had a previous ectopic pregnancy. I am now 9 weeks pregnant and I have started getting pains in my lower abdomen. My doctor is not available.",
+      "wema_response": "Please lie down on your left side right now and stay completely still. Do not get up under any circumstances, and do not press on your belly. After that, call a neighbour or family member to drive you to the nearest hospital immediately. This pain at nine weeks needs urgent medical care. Help is being alerted. Get to a health facility now.",
+      "latency": 5.41,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and not press on her belly, and to call for immediate transport to a hospital, which aligns with the expected physical intervention."
+    },
+    {
+      "id": "S041",
+      "type": "Ectopic Pregnancy",
+      "query": "I think I might be pregnant. I have not had my period for 7 weeks. I have terrible pain and feel like I might faint.",
+      "wema_response": "Please lie down on your left side right now and do not try to get up. Keep your hands off your belly and stay completely still. I know you are in terrible pain and feeling faint, but please stay calm and rest quietly. After that, call someone to bring you to the nearest hospital immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 7.31,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and call for transport to the nearest hospital immediately, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S042",
+      "type": "Ectopic Pregnancy",
+      "query": "I had an intrauterine device fitted. I think I might be pregnant and I have sharp pains in my right side. I feel very unwell.",
+      "wema_response": "Please lie down on your left side right now and do not get up under any circumstances. Keep your hands completely off your belly. Then call someone to drive you to the nearest hospital immediately, as this needs urgent care. Help is being alerted. Get to a health facility now.",
+      "latency": 6.67,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down and seek immediate transportation to a hospital, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S043",
+      "type": "Severe Anaemia",
+      "query": "I am 6 months pregnant and I feel very weak and breathless even when I am just sitting. I look very pale. I have not been eating well.",
+      "wema_response": "I hear you, and I want to help you right away. Please lie down on your left side immediately and rest completely. Sip only small amounts of water and do not exert yourself in any way. After that, have someone take you to the nearest hospital without delay. Help is being alerted. Get to a health facility now.",
+      "latency": 7.07,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to rest completely and go to a facility, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S044",
+      "type": "Severe Anaemia",
+      "query": "I am 9 months pregnant and I cannot breathe properly when I lie down. My heart is beating very fast. I feel like I might collapse.",
+      "wema_response": "Please lie down on your left side right now to help your breathing. Keep yourself warm and stay completely still. Then call a neighbour or family member to bring you to a hospital immediately. Do not try to walk or get up on your own. Help is being alerted. Get to a health facility now.",
+      "latency": 7.13,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omits the key physical intervention of resting and does not explicitly instruct the woman to rest, although it advises her to stay completely still."
+    },
+    {
+      "id": "S045",
+      "type": "Severe Anaemia",
+      "query": "I am 3 months pregnant and I feel tired all the time. I get dizzy when I stand up. My nails look very white.",
+      "wema_response": "Please lie down on your left side right now and rest completely. Sip some plain water and do not exert yourself. After that, arrange for someone to take you to a health facility urgently. Help is being alerted. Get to a health facility now.",
+      "latency": 4.71,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI response correctly instructs the woman to rest completely and go to a health facility urgently, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S046",
+      "type": "Severe Anaemia",
+      "query": "I am 9 months pregnant. I have sickle cell disease and I am in pain all over my body. I have a fever and I am very breathless.",
+      "wema_response": "Please lie down on your left side and rest quietly right now. Keep yourself warm with a blanket, then take small sips of water. After that, stay still and do not try to walk. Help is being alerted. Get to a health facility now.",
+      "latency": 5.31,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly by advising the woman to rest, drink water, and go to a health facility immediately."
+    },
+    {
+      "id": "S047",
+      "type": "Severe Anaemia",
+      "query": "I am 5 months pregnant and I was just told I have malaria. I feel very weak, I have a high fever and I look very yellow.",
+      "wema_response": "I hear you, and I\u2019m here with you. Please lie down on your left side right now. Keep yourself warm, then take small sips of plain water. After that, arrange for someone to take you to a hospital immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 5.11,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical interventions of resting, keeping warm, drinking water, and going to a facility immediately."
+    },
+    {
+      "id": "S048",
+      "type": "Severe Anaemia",
+      "query": "I am 8 months pregnant. I have been told my blood level is low. I feel okay but I get out of breath when I walk up stairs.",
+      "wema_response": "Please lie down on your left side and rest completely right now. Sip some plain water and make sure you do not exert yourself or walk up any stairs. After that, arrange for someone to take you to the nearest health facility urgently. Help is being alerted. Get to a health facility now.",
+      "latency": 6.44,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly advises the woman to rest completely, avoid exertion, and go to a health facility, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S049",
+      "type": "Severe Anaemia",
+      "query": "I gave birth 2 days ago. I lost a lot of blood during delivery. Now I cannot get out of bed, I feel my heart racing and I cannot catch my breath.",
+      "wema_response": "Please stay lying flat right now and keep yourself warm. After that, sip a little plain water and watch how much you are bleeding on the way. Do not massage your belly or try to get up. Then call someone to help you arrange urgent transport to the nearest hospital. Help is being alerted. Get to a health facility now.",
+      "latency": 8.82,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly advises the woman to stay lying flat, not exert herself, and arrange urgent transport to the hospital, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S050",
+      "type": "Severe Anaemia",
+      "query": "I dey 5 months. I dey feel like say my heart dey run race. I tire well well and I no fit do anything. I look pale for mirror.",
+      "wema_response": "I am here with you. Lie on your left side right now and rest completely. Sip some water if you can and do not exert yourself. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to rest completely, lie on her left side, and get to a hospital, aligning with the expected physical intervention for a severe anaemia emergency."
+    },
+    {
+      "id": "S051",
+      "type": "Malaria in Pregnancy",
+      "query": "I am 5 months pregnant and I have been shaking with fever for two days. Now I cannot stand up. My temperature is very high.",
+      "wema_response": "Please lie down on your left side right now and keep yourself warm. After that, take only tiny sips of plain water if you can swallow safely. Do not try to stand or walk on your own. Help is being alerted. Get to a health facility now.",
+      "latency": 7.02,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including resting, drinking water, and seeking immediate medical help."
+    },
+    {
+      "id": "S052",
+      "type": "Malaria in Pregnancy",
+      "query": "I dey 8 months. I don dey shake and vomit. I no fit open my eye well. My baby no dey kick.",
+      "wema_response": "I am here with you. Lie on your left side right now and keep warm. Sip some water. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie on her left side and seek immediate hospital attention, aligning with the expected physical intervention for severe malaria."
+    },
+    {
+      "id": "S053",
+      "type": "Malaria in Pregnancy",
+      "query": "I just found out I am 10 weeks pregnant. I have malaria. My doctor gave me a tablet but I am scared it will harm the baby.",
+      "wema_response": "I know you are worried, but please stay calm. Lie on your left side and keep yourself warm. Then sip some plain water. After that, go to a health facility so the doctors can monitor you and your baby safely. Help is being alerted. Get to a health facility now.",
+      "latency": 7.09,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omits the crucial physical intervention of not stopping medication without consulting a doctor, instead focusing on general comfort and seeking medical help."
+    },
+    {
+      "id": "S054",
+      "type": "Sickle Cell Crisis in Pregnancy",
+      "query": "I have sickle cell. I am 8 months pregnant and I am in a crisis. The pain in my chest and back is unbearable. I cannot breathe well.",
+      "wema_response": "Please lie down and rest right now. Keep yourself warm with a blanket, then take small sips of water if you can. After that, stay completely still and do not try to walk. Help is being alerted. Get to a health facility now.",
+      "latency": 5.5,
+      "verdict": "PARTIAL",
+      "score": 3,
+      "reason": "The AI system's response omitted the urgency and explicit instruction to go to the hospital immediately, which is a major physical/behavioural intervention."
+    },
+    {
+      "id": "S055",
+      "type": "Sickle Cell Crisis in Pregnancy",
+      "query": "I get sickle cell. I dey 5 months. Pain don catch me for joint. I no fit walk. Wetin I go do?",
+      "wema_response": "I am here with you. Lie down and rest right now. Keep warm. Drink water if you are able to. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions of resting, drinking water, and seeking medical help, aligning with the expected actions for managing a sickle cell crisis."
+    },
+    {
+      "id": "S056",
+      "type": "Gestational Diabetes",
+      "query": "I have gestational diabetes. I checked my sugar and it is very high. I feel dizzy and confused. I did not eat today.",
+      "wema_response": "Please sit down right now so you stay safe. Eat a small amount of food immediately to help your blood sugar. After that, rest quietly and keep someone with you to watch how you are feeling. If your confusion gets worse, you must leave for a hospital right away. Help is being alerted. Get to a health facility now.",
+      "latency": 8.06,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including sitting down, eating something, and seeking medical help if confusion worsens."
+    },
+    {
+      "id": "S057",
+      "type": "Gestational Diabetes",
+      "query": "My wife get sugar for belle. She don faint. She dey breathe but she no dey respond to me.",
+      "wema_response": "I am here with you. Help her sit or lie on her side, whichever is safest, right now. Do not give her anything to eat or drink if she is not responding well. Help is being alerted. Get her to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly covers the main physical intervention of placing the woman on her side and not giving her anything to eat or drink, aligning with the expected actions."
+    },
+    {
+      "id": "S058",
+      "type": "Preterm Labour",
+      "query": "I am 7 months pregnant and I am having strong pains every 10 minutes. I think I am in labour but it is too early.",
+      "wema_response": "Please stay calm and lie down on your left side right now. Do not push when the pains come, just breathe slowly through each contraction. Then keep yourself warm and stay as still as possible while you arrange transport. Help is being alerted. Get to a health facility now.",
+      "latency": 5.32,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly, advising the woman to lie down, not push, and arrange transport to a health facility."
+    },
+    {
+      "id": "S059",
+      "type": "Preterm Labour",
+      "query": "I dey 6 months. Water don burst and pain dey come. I no reach hospital.",
+      "wema_response": "Stay calm, I am here with you. Lie on your left side right now. Do not push. Breathe slowly through each contraction. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "PARTIAL",
+      "score": 4,
+      "reason": "The AI system's response omitted the key physical intervention of placing a clean pad and did not explicitly mention emergency transfer, although it advised getting to a hospital."
+    },
+    {
+      "id": "S060",
+      "type": "Placenta Praevia",
+      "query": "I am 8 months pregnant and I suddenly started bleeding with no pain. It just came out of nowhere. There is a lot of blood.",
+      "wema_response": "Please lie down on your left side right now and do not get up. Do not press on your belly or try to examine yourself. After that, stay completely still and keep warm while someone arranges urgent transport for you. Help is being alerted. Get to a health facility now.",
+      "latency": 5.88,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to lie down on her left side and not get up, aligning with the key expected physical intervention."
+    },
+    {
+      "id": "S061",
+      "type": "Miscarriage",
+      "query": "I am 3 months pregnant and I am passing tissue and bleeding heavily. I can see clots. I am very scared.",
+      "wema_response": "I hear how scared you are, and I am right here with you. Please lie down immediately and do not press on your belly. Keep any tissue you pass in a clean bag to show the doctor. After that, call someone to take you to a hospital right away. Help is being alerted. Get to a health facility now.",
+      "latency": 5.7,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly and safely covers the main physical intervention by advising the woman to keep any passed tissue in a clean bag and to go to a hospital immediately."
+    },
+    {
+      "id": "S062",
+      "type": "Miscarriage",
+      "query": "I dey 2 months. Small blood dey come with small cramp. Doctor say make I rest. E serious?",
+      "wema_response": "I am here with you. Rest at home and lie down right now. Monitor your bleeding, and do not massage your belly. If bleeding gets much heavier or pain becomes severe, go to a health facility immediately.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly advises the woman to rest, monitor her bleeding, and seek medical help if her condition worsens, aligning with the expected physical intervention."
+    },
+    {
+      "id": "S063",
+      "type": "Newborn Not Breathing",
+      "query": "I just gave birth at home. The baby is not crying. He is blue and not moving. Please help me.",
+      "wema_response": "Please stay calm and act quickly. Dry your baby vigorously with a clean cloth right now, then rub his back firmly for thirty seconds. Keep him warm and watch for breathing. If he is still not breathing, cover his mouth and nose with yours and give five gentle puffs of air. Help is being alerted. Get to a health facility now.",
+      "latency": 5.81,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response accurately covers the main physical intervention of drying and rubbing the baby, keeping warm, and providing rescue breaths, while adhering to the safety design choice of not naming medications or supplements."
+    },
+    {
+      "id": "S064",
+      "type": "Newborn Convulsions",
+      "query": "My baby wey I born yesterday dey shake like convulsion. E no fit feed. Wetin I go do?",
+      "wema_response": "Turn the baby gently onto their side right now. Do not shake or restrain the baby. Keep the baby warm and flat. Help is being alerted. Get to a hospital now.",
+      "latency": 0.0,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical intervention safely and correctly, advising the caller to keep the baby warm and flat, and to get to a hospital immediately."
+    },
+    {
+      "id": "S065",
+      "type": "Hyperemesis Gravidarum",
+      "query": "I am 9 weeks pregnant. I cannot stop vomiting. I have not kept any food or water down for 3 days. I feel so weak I cannot get up.",
+      "wema_response": "Please lie down on your side right now to rest. Try to take only tiny sips of plain water, and do not eat any solid food or drink anything else. Then call someone nearby to come help you, since you are too weak to move. Help is being alerted. Get to a health facility now.",
+      "latency": 7.96,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly advises the woman to get to a health facility and provides safe interim care instructions."
+    },
+    {
+      "id": "S066",
+      "type": "Postpartum Haemorrhage",
+      "query": "I just gave birth. I am 17. I am alone. I cannot stop bleeding. My mother went to the market. I am very scared.",
+      "wema_response": "I am here with you, so please shout for a neighbour or call someone to come to your house immediately. Massage your lower belly firmly in circles until it feels hard, then put your baby to your breast to help your womb contract. Empty your bladder, lie flat with your legs raised, and keep warm without getting up. Help is being alerted. Get to a health facility now.",
+      "latency": 10.29,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response covers the main physical interventions safely and correctly, including massaging the lower belly, putting the baby to breast, and shouting for a neighbour."
+    },
+    {
+      "id": "S067",
+      "type": "Eclampsia",
+      "query": "My wife gave birth two days ago. She just had a fit. She is confused and her head is pounding. She has never had fits before.",
+      "wema_response": "You need to help her lie on her left side right now. Then clear the space around her to keep her safe and do not restrain her or put anything in her mouth. After that, stay close and arrange transport immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 8.99,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly and safely covers the main physical intervention of placing the woman on her left side and protecting her from injury."
+    },
+    {
+      "id": "S068",
+      "type": "Cord Prolapse",
+      "query": "I am in labour. Water broke. My husband can see something coming out that is not the baby. It looks like a cord.",
+      "wema_response": "Please get on your hands and knees right now with your chest down and your hips up. This is a very urgent emergency for your baby. Do not try to push the cord back inside and do not stand up or lie flat. After that, have your husband call for transport immediately. Help is being alerted. Get to a health facility now.",
+      "latency": 6.45,
+      "verdict": "EQUIVALENT",
+      "score": 5,
+      "reason": "The AI system's response correctly instructs the woman to get on her hands and knees, not to push, and to keep the cord moist, which aligns with the expected physical intervention."
+    }
+  ],
+  "total": 68,
+  "equivalent": 60,
+  "partial": 8,
+  "divergent": 0,
+  "mean_score": 4.794117647058823,
+  "mean_latency": 5.795735294117647,
+  "physical_only_count": 68,
+  "chunk_count": 10059,
+  "total_unit_passed": 14,
+  "total_unit_count": 14
+}
