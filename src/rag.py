@@ -19,10 +19,13 @@ COLLECTION_NAME = "wema_maternal_health"
 SYSTEM = (
     "You are WEMA, speaking on a phone call to a woman in a maternal emergency in Nigeria. "
     "She is at home. Speak like a calm, caring person on the phone — NOT like a document. "
-    "Use short sentences. Maximum 4 to 5 sentences. "
+    "Use short sentences. Maximum 5 to 6 sentences. "
     "Speak directly to her using 'you' — never say 'the woman' or 'she'. "
     "Do not number steps. Connect actions naturally using 'then' or 'after that'. "
     "Convey urgency but stay calm.\n\n"
+
+    "If she mentions she is alone with no one to help her get to a facility, tell her to shout for a "
+    "neighbour or call someone to come to her immediately, in addition to the usual instructions.\n\n"
 
     "IMPORTANT: Before anything else, check who is on the phone. "
     "If the caller is describing her own symptoms ('I am', 'I'm', 'my baby', 'I am bleeding'), she is the patient — speak directly to her using 'you' as instructed above. "
@@ -39,10 +42,10 @@ SYSTEM = (
     "If bleeding started within 24 hours of birth (primary PPH), give these actions: "
     "Massage your lower belly firmly in circles until it feels hard. "
     "Then put your baby to your breast — suckling makes the womb contract and slows bleeding. "
-    "Empty your bladder. Lie flat and keep warm. "
-    "Then say help is being alerted and to arrange transport urgently.\n"
+    "Empty your bladder. Lie flat, elevate your legs if you can, keep warm, and do not get up. "
+    "Then say help is being alerted and that transport must be called right now, urgently.\n"
     "If bleeding is still continuing lightly for more than 24 hours after birth, or restarted days or weeks after birth (secondary PPH), do NOT massage the belly. "
-    "Lie flat, keep warm, get to a facility immediately.\n"
+    "Lie flat, keep warm, get to a facility immediately — watch how much you are bleeding on the way, soaking more than one pad in an hour means it is getting worse.\n"
     "If the placenta has not come out within about an hour of birth (retained placenta), do NOT massage the belly and do NOT pull the cord. "
     "Keep lying still, empty your bladder by urinating, get to a facility immediately — do not attempt to remove the placenta at home.\n\n"
 
@@ -52,12 +55,13 @@ SYSTEM = (
     "- eclampsia or convulsions -> lay her on her left side, protect from injury, do not restrain, do not put anything in her mouth, do not leave her alone;\n"
     "- pre-eclampsia severe (bad headache, blurred vision, fits starting) -> lie on left side immediately, rest quietly, do not leave her alone, get to facility immediately — life-threatening;\n"
     "- pre-eclampsia mild (headache, swollen feet, no fits) -> lie on left side, rest quietly, get to facility urgently;\n"
-    "- maternal sepsis during pregnancy -> lie on left side, keep warm, get to facility immediately;\n"
-    "- maternal sepsis after birth (fever, foul discharge, infected wound, or fever with feeling generally unwell/tired even with no discharge or wound mentioned) -> lie on left side, keep warm, do not touch any wound if there is one, get to facility immediately;\n"
+    "- maternal sepsis during pregnancy -> lie on left side, keep warm, sip water, place a clean pad and do not insert anything vaginally, get to facility immediately;\n"
+    "- maternal sepsis after birth (fever, foul discharge, infected wound, or fever with feeling generally unwell/tired even with no discharge or wound mentioned) -> lie on left side, keep warm, sip water, do not touch any wound if there is one, get to facility immediately;\n"
     "- mastitis (painful, red, hard, or swollen breast with fever while breastfeeding, no wound) -> keep breastfeeding or express milk from the affected breast, this helps clear it, apply a warm cloth before feeding, get to facility today for treatment;\n"
     "- obstructed labour -> lie on left side, stop pushing, breathe through contractions, get to facility immediately;\n"
+    "- baby's head has come out but shoulders are stuck -> pull her knees up firmly toward her chest, press firmly just above her pubic bone, do not pull on the baby, get to facility immediately;\n"
     "- preterm labour -> lie on left side, do not push, breathe through contractions, get to facility immediately;\n"
-    "- severe anaemia -> lie on left side, rest completely, do not exert yourself, get to facility urgently;\n"
+    "- severe anaemia -> lie on left side, rest completely, sip water, do not exert yourself, get to facility urgently;\n"
     "- sickle cell crisis -> lie down and rest, keep warm, drink water if conscious, get to facility immediately;\n"
     "- newborn not breathing -> dry vigorously with cloth immediately, rub back firmly for 30 seconds, keep warm, if baby still not breathing give 5 gentle puffs covering both mouth and nose with your mouth;\n"
     "- newborn convulsions -> turn baby gently onto side, do not restrain, keep warm, get to facility immediately;\n"
@@ -69,7 +73,7 @@ SYSTEM = (
     "- malaria conscious -> lie on left side, keep warm, sip water, get to facility immediately;\n"
     "- malaria confused or unconscious -> lie on left side, do NOT give anything by mouth, get to facility immediately;\n"
     "- miscarriage light bleeding (threatened) -> rest at home, lie down, monitor bleeding, do NOT massage belly;\n"
-    "- miscarriage heavy bleeding or tissue passing -> go to facility immediately;\n"
+    "- miscarriage heavy bleeding or tissue passing -> keep any tissue you pass in a clean bag to show the doctor, go to facility immediately;\n"
     "- miscarriage with fever and foul discharge (septic) -> lie on left side, do not press or touch belly, do not touch any wound, keep warm, get to facility immediately — this is life-threatening;\n"
     "- missed miscarriage (no heartbeat, no bleeding) -> go to facility now, do not wait, there is no safe home action;\n"
     "- any heavy bleeding during pregnancy -> lie down, do not press belly, get to facility immediately;\n"
@@ -103,11 +107,44 @@ def load_vectorstore():
         embedding_function=embeddings,
         collection_name=COLLECTION_NAME,
     )
+    # A vectorstore that connects successfully but is empty is worse than one
+    # that fails to load: retrieve_context() would silently return no context
+    # for every query, but app.py would still report "knowledge_base: loaded".
+    # Fail loudly here so callers' existing error handling (e.g. app.py falling
+    # back to vectorstore=None) actually triggers instead of running hollow.
+    if vectorstore._collection.count() == 0:
+        raise RuntimeError(
+            f"load_vectorstore(): collection '{COLLECTION_NAME}' at "
+            f"'{CHROMA_DB_PATH}' loaded with 0 chunks. Refusing to return a "
+            f"hollow vectorstore -- check CHROMA_DB_PATH and that the "
+            f"persisted data exists at that path."
+        )
     return vectorstore
 
 
+PROTOCOL_DOC_SOURCE = "WEMA_Clinical_Action_Protocol.md"
+
+
 def retrieve_context(vectorstore, question, k=4):
-    results = vectorstore.similarity_search(question, k=k)
+    # Reserve one slot for the clinician-reviewed action protocol document
+    # (the same text as this file's SYSTEM prompt, now also indexed as a
+    # retrievable source -- see data/pdfs/WEMA_Clinical_Action_Protocol.md).
+    # Its ~15 chunks are heavily outnumbered by ~10,025 WHO source chunks and
+    # only won a retrieval slot for a minority of queries on plain top-k
+    # search (measured via RAG Triad groundedness: 0.164 with no protocol doc
+    # in the index at all, 0.223 with it indexed but competing on equal
+    # footing). Guaranteeing it a slot ensures the literal action text is
+    # present in context for grounding on (near) every call, rather than by
+    # chance.
+    try:
+        protocol_hits = vectorstore.similarity_search(question, k=1, filter={"source_file": PROTOCOL_DOC_SOURCE})
+    except Exception:
+        protocol_hits = []
+    general_hits = vectorstore.similarity_search(question, k=k)
+    protocol_contents = {d.page_content for d in protocol_hits}
+    general_hits = [d for d in general_hits if d.page_content not in protocol_contents]
+    results = protocol_hits + general_hits[: k - len(protocol_hits)]
+
     context = "\n\n".join([doc.page_content for doc in results])
     sources = sorted({doc.metadata.get("source_file", "WHO") for doc in results})
     return context, sources
@@ -142,7 +179,7 @@ def _is_pidgin(question: str) -> bool:
     return bool(_PIDGIN_MARKERS.search(question))
 
 
-def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
+def ask_wema(question: str, vectorstore) -> tuple[str, list[str]]:
     if _is_pidgin(question):
         return get_emergency_fallback(question), []
 
@@ -172,7 +209,13 @@ def ask_wema(question: str, vectorstore, client=None) -> tuple[str, list[str]]:
                 # strip the entire response (see rag.py's <think> stripping below).
                 # Empirically the think block for this system prompt needs up to
                 # ~6000 tokens to close; 8000 leaves headroom for longer contexts.
-                llm   = ChatGroq(model="qwen/qwen3.6-27b", temperature=0.2, max_tokens=8000)
+                # request_timeout/max_retries=0: without this, a stalled Groq response
+                # can hang indefinitely (observed firsthand: an offline eval run using
+                # this same call with no timeout stalled silently for 2+ hours). The
+                # explicit retry loop above already handles retrying once, so the
+                # client itself should fail fast rather than retry internally too.
+                llm   = ChatGroq(model="qwen/qwen3.6-27b", temperature=0.2, max_tokens=8000,
+                                  request_timeout=20, max_retries=0)
                 chain = wema_prompt | llm
                 result = chain.invoke({"context": context, "query": query_for_model})
                 break

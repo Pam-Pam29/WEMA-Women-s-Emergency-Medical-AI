@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 # Settings defined directly here — no import needed
@@ -17,10 +18,16 @@ SKIP_FILES = [
     "fdata-8-1594062",
 ]
 
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# .md/.txt sources are WEMA's own authored reference documents (e.g. the
+# clinician-reviewed action protocol already used to constrain generation in
+# rag.py's SYSTEM prompt), not scanned external guidelines -- unlike the WHO
+# PDFs, these are safe to commit to the repo rather than gitignored.
+LOADERS_BY_EXTENSION = {".pdf": PyPDFLoader, ".md": TextLoader, ".txt": TextLoader}
 
 
 def load_pdfs(folder):
@@ -28,7 +35,8 @@ def load_pdfs(folder):
     skipped = []
 
     for filename in os.listdir(folder):
-        if not filename.endswith(".pdf"):
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in LOADERS_BY_EXTENSION:
             continue
         if any(skip in filename for skip in SKIP_FILES):
             skipped.append(filename)
@@ -36,7 +44,8 @@ def load_pdfs(folder):
 
         path = os.path.join(folder, filename)
         try:
-            loader = PyPDFLoader(path)
+            loader_cls = LOADERS_BY_EXTENSION[ext]
+            loader = loader_cls(path, encoding="utf-8") if loader_cls is TextLoader else loader_cls(path)
             docs = loader.load()
             for doc in docs:
                 doc.metadata["source_file"] = filename
@@ -50,13 +59,37 @@ def load_pdfs(folder):
     return documents
 
 
+def _split_markdown_by_heading(doc):
+    """Splits a markdown Document into one chunk per '## ' section, so a
+    heading is never separated from its own body text. The generic
+    character splitter below chunk_documents() packs text to chunk_size
+    greedily and doesn't know where one clinical protocol ends and the next
+    begins -- observed concretely: it cut a chunk right after '## Postpartum
+    Haemorrhage - Secondary', leaving that section's actual instructions
+    ('do NOT massage the belly...') in the next chunk under a different
+    heading, so retrieval for a secondary-PPH query surfaced the heading
+    with no matching body text. One chunk per section fixes that at the
+    source rather than hoping the character splitter lands well."""
+    from langchain_core.documents import Document
+    text = doc.page_content
+    parts = re.split(r"\n(?=## )", text)
+    return [Document(page_content=p.strip(), metadata=dict(doc.metadata)) for p in parts if p.strip()]
+
+
 def chunk_documents(documents):
+    md_docs = [d for d in documents if d.metadata.get("source_file", "").endswith((".md", ".txt"))]
+    other_docs = [d for d in documents if d not in md_docs]
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
         separators=["\n\n", "\n", ". ", " ", ""]
     )
-    chunks = splitter.split_documents(documents)
+    chunks = splitter.split_documents(other_docs)
+
+    for doc in md_docs:
+        chunks.extend(_split_markdown_by_heading(doc))
+
     print(f"Total chunks created: {len(chunks)}")
     return chunks
 

@@ -219,11 +219,6 @@ class ProviderDirectory:
 _default_directory = ProviderDirectory()
 
 
-def load_providers() -> list:
-    """Back-compat module-level wrapper around the default ProviderDirectory."""
-    return _default_directory.load()
-
-
 def find_nearest_providers(
     caller_state: str = None,
     caller_lat: float = None,

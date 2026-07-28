@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from prompt import get_greeting, get_stt_retry_prompt, get_fallback_response, is_conversational, get_conversational_response
 from sms import alert_nearest_providers, extract_state, should_trigger_sms, handle_provider_reply
-from rag import ask_wema, load_vectorstore
+from rag import ask_wema, load_vectorstore, classify_risk
 from session_store import SessionStore
 
 load_dotenv()
@@ -228,12 +228,16 @@ def process_in_background(call_sid: str, caller_number: str, speech_result: str,
         wema_response = get_conversational_response(intent)
         sources = []
         sms_triggered = False
+        risk_level = None
     else:
         wema_response, sources = call_inference(final_transcript)
         sms_triggered = should_trigger_sms(wema_response) and not session["providers_alerted"]
+        risk_level = classify_risk(wema_response)
 
     print(f"[TIMING] Groq: {time.time()-t1:.2f}s")
     print(f"[WEMA {call_sid}] {wema_response}")
+    if risk_level:
+        print(f"[RISK {call_sid}] {risk_level}")
 
     # Step 4: Trigger SMS
     if sms_triggered:
@@ -263,7 +267,7 @@ def process_in_background(call_sid: str, caller_number: str, speech_result: str,
         closing_audio_url = synthesize_speech(closing_text)
     print(f"[TIMING] TTS: {time.time()-t2:.2f}s")
 
-    session["history"].append({"caller": final_transcript, "wema": wema_response})
+    session["history"].append({"caller": final_transcript, "wema": wema_response, "risk": risk_level})
 
     # Step 6: Store response and redirect live call
     sessions.set_response_ready(call_sid, {
