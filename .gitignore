@@ -17,7 +17,8 @@ env/
 models/finetuned/
 
 # Data
-data/pdfs/
+data/pdfs/*
+!data/pdfs/WEMA_Clinical_Action_Protocol.md
 data/processed/
 
 # Notebooks checkpoints
@@ -30,6 +31,7 @@ Thumbs.db
 # Local debris (not part of submission)
 wema_prod_env/
 knowledge_base_corrupted_backup/
+knowledge_base_pre_protocol_backup/
 build_log.txt
 failed_sms.log
 
